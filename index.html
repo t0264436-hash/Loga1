@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C.G | Cardápio Geral</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fundo: '#050505',
+                        card: '#0F0F0F',
+                        cardClaro: '#181818',
+                        dourado: '#D4AF37',
+                        douradoClaro: '#F5E7A2',
+                        douradoEscuro: '#B8860B',
+                        texto: '#E2E2E2',
+                        textoSuave: '#9A9A9A',
+                        erro: '#DC2626'
+                    },
+                    fontFamily: {
+                        display: ['"Playfair Display"', 'serif'],
+                        corpo: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .texto-gradient {
+                background: linear-gradient(90deg, #D4AF37, #F5E7A2);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+            }
+            .borda-dourada { border: 1px solid rgba(212, 175, 55, 0.25); }
+            .borda-dourada-forte { border: 1px solid rgba(212, 175, 55, 0.5); }
+            .bg-grade {
+                background-image: radial-gradient(rgba(212, 175, 55, 0.06) 1px, transparent 0);
+                background-size: 24px 24px;
+            }
+            .escala-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+            .escala-hover:hover { transform: translateY(-4px); }
+            .scroll-suave::-webkit-scrollbar { width: 6px; }
+            .scroll-suave::-webkit-scrollbar-track { background: #0F0F0F; }
+            .scroll-suave::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 3px; }
+        }
+    </style>
+</head>
+<body class="bg-fundo text-texto font-corpo bg-grade scroll-suave">
+
+    <!-- Tela de Splash -->
+    <div id="splash" class="fixed inset-0 z-[999] bg-fundo flex flex-col items-center justify-center gap-6 transition-opacity duration-700">
+        <div class="relative">
+            <div class="w-28 h-28 rounded-full border-2 border-dourado/30"></div>
+            <div class="absolute inset-0 w-28 h-28 rounded-full border-2 border-dourado border-t-transparent animate-spin"></div>
+            <h1 class="absolute inset-0 flex items-center justify-center text-4xl font-display font-bold texto-gradient">C.G</h1>
+        </div>
+        <p class="text-textoSuave text-sm">Carregando...</p>
+    </div>
+
+    <!-- Navbar -->
+    <header id="navbar" class="fixed w-full top-0 z-50 bg-fundo/80 backdrop-blur-md border-b borda-dourada">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="#" onclick="irPagina('inicio')" class="flex items-center gap-2">
+                <span class="text-2xl font-display font-bold texto-gradient">C.G</span>
+                <span class="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-dourado/60">Cardápio Geral</span>
+            </a>
+            <div class="flex items-center gap-5">
+                <button onclick="irPagina('carrinho')" class="relative group">
+                    <i class="fa fa-shopping-cart text-lg group-hover:text-dourado transition-colors"></i>
+                    <span id="badgeCarrinho" class="absolute -top-2 -right-2 bg-dourado text-fundo text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full scale-0 transition-transform">0</span>
+                </button>
+                <div id="areaUsuario">
+                    <button id="btnEntrar" onclick="irPagina('login')" class="text-sm font-medium hover:text-dourado">Entrar</button>
+                    <div id="menuUsuario" class="hidden items-center gap-3">
+                        <span id="nomeUsuario" class="text-sm hidden md:inline"></span>
+                        <button onclick="irPagina('painel')" class="text-xs px-3 py-1.5 bg-cardClaro rounded-lg borda-dourada hover:bg-dourado hover:text-fundo">Painel</button>
+                        <button onclick="deslogar()" class="text-textoSuave hover:text-erro text-sm"><i class="fa fa-sign-out"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo -->
+    <main class="container mx-auto px-4 pt-28 pb-24">
+        <!-- Início -->
+        <section id="pgInicio" class="pagina hidden">
+            <div class="text-center mb-14">
+                <h2 class="text-[clamp(2rem,5vw,3rem)] font-display font-bold leading-tight mb-4">
+                    Seu pedido, direto do <span class="texto-gradient">melhor lugar</span>
+                </h2>
+                <p class="text-textoSuave max-w-xl mx-auto">
+                    Sem taxas, sem burocracia. Direto no WhatsApp.
+                </p>
+                <div class="mt-8 flex justify-center gap-4 flex-wrap">
+                    <button onclick="irPagina('lojas')" class="px-8 py-3 bg-dourado text-fundo font-semibold rounded-lg shadow-dourado hover:shadow-douradoForte">Ver Lojas</button>
+                    <button onclick="irPagina('login')" class="px-8 py-3 border borda-dourada rounded-lg hover:bg-dourado/10">Vender Aqui</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="listaLojas"></div>
+        </section>
+
+        <!-- Lojas -->
+        <section id="pgLojas" class="pagina hidden">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-display">Todas as Lojas</h3>
+                <div class="relative">
+                    <input type="text" id="buscaLoja" placeholder="Buscar..." class="bg-card borda-dourada pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none">
+                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-textoSuave"></i>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="gridLojas"></div>
+        </section>
+
+        <!-- Loja -->
+        <section id="pgLoja" class="pagina hidden">
+            <button onclick="voltar()" class="text-dourado mb-6 inline-flex items-center gap-2 hover:gap-3">
+                <i class="fa fa-arrow-left"></i> Voltar
+            </button>
+            <div class="bg-card rounded-2xl p-6 md:p-10 borda-dourada shadow-dourado mb-10">
+                <div class="flex flex-col md:flex-row gap-8 items-center md:items-start">
+                    <img id="capaLoja" class="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover borda-dourada-forte">
+                    <div class="text-center md:text-left flex-1">
+                        <h2 id="tituloLoja" class="text-3xl font-display font-bold mb-2"></h2>
+                        <p id="telefoneLoja" class="text-textoSuave flex items-center justify-center md:justify-start gap-2 mb-4">
+                            <i class="fa fa-whatsapp text-dourado"></i> <span></span>
+                        </p>
+                        <div class="flex gap-3 justify-center md:justify-start flex-wrap">
+                            <button onclick="compartilharLoja()" class="text-xs px-4 py-2 bg-cardClaro rounded-lg borda-dourada hover:bg-dourado/20">Compartilhar</button>
+                            <a id="linkWhatsAppLoja" href="#" target="_blank" class="text-xs px-4 py-2 bg-dourado text-fundo rounded-lg font-semibold">Contato</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 overflow-x-auto pb-4 mb-8 scroll-suave" id="categorias">
+                <button class="categoria-btn px-5 py-2 rounded-full bg-dourado text-fundo text-sm font-medium whitespace-nowrap" data-cat="todas">Todas</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="listaProdutos"></div>
+        </section>
+
+        <!-- Carrinho -->
+        <section id="pgCarrinho" class="pagina hidden max-w-4xl mx-auto">
+            <h2 class="text-3xl font-display mb-8">Seu Pedido</h2>
+            <div id="itensCarrinho" class="space-y-5 mb-10"></div>
+            <div id="vazioCarrinho" class="hidden text-center py-20 text-textoSuave">
+                <i class="fa fa-shopping-bag text-5xl mb-4 text-dourado/40"></i>
+                <p>Carrinho vazio</p>
+                <button onclick="irPagina('lojas')" class="mt-4 text-dourado">Escolher produtos</button>
+            </div>
+            <div id="resumoCompra" class="bg-card rounded-2xl p-6 borda-dourada shadow-dourado">
+                <div class="flex justify-between text-xl font-semibold mb-6">
+                    <span>Total</span>
+                    <span id="valorTotal" class="texto-gradient">R$ 0,00</span>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm text-textoSuave mb-2">Forma de Pagamento</label>
+                    <select id="formaPag" class="w-full bg-cardClaro borda-dourada rounded-lg p-3 focus:outline-none">
+                        <option value="pix">Pix</option>
+                        <option value="cartao">Cartão</option>
+                        <option value="dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <div id="campoTroco" class="hidden mb-6">
+                    <label class="block text-sm text-textoSuave mb-2">Valor para troco</label>
+                    <input type="number" id="valorPag" step="0.01" min="0" class="w-full bg-cardClaro borda-dourada rounded-lg p-3 focus:outline-none" placeholder="R$ 0,00">
+                    <p id="textoTroco" class="text-right text-dourado mt-2 text-sm"></p>
+                </div>
+                <button id="btnFinalizar" class="w-full py-4 bg-dourado text-fundo font-bold rounded-xl shadow-dourado hover:shadow-douradoForte text-lg">
+                    Finalizar <i class="fa fa-whatsapp ml-2"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Login -->
+        <section id="pgLogin" class="pagina hidden max-w-md mx-auto">
+            <div class="bg-card p-8 md:p-10 rounded-2xl borda-dourada shadow-dourado">
+                <h2 class="text-3xl font-display mb-2 text-center">Bem-vindo</h2>
+                <p class="text-center text-textoSuave mb-8">Acesse sua conta</p>
+                <div id="formLogin">
+                    <div class="mb-5">
+                        <label class="block text-sm mb-2">E-mail</label>
+                        <input type="email" id="emailLogin" class="w-full bg-cardClaro borda-dourada rounded-lg p-3 focus:outline-none" placeholder="seu@email.com">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm mb-2">Senha</label>
+                        <input type="password" id="senhaLogin" class="w-full bg-cardClaro borda-dourada rounded-lg p-3 focus:outline-none" placeholder="••••••••">
+                    </div>
+                    <button onclick="logar()" class="w-full py-3 bg-dourado text-fundo font-bold rounded-lg shadow-dourado">Entrar</button>
+                    <p class="text-center mt-6 text-textoSuave">Não tem conta? <a href="#" onclick="trocarForm()" class="text-dourado">Cadastrar</a></p>
+                    <p class="text-center mt-2 text-xs text-textoSuave"><a href="#" onclick="adminRapido()" class="opacity-60">Modo Admin</a></p>
+                </div>
+                <div id="formCadastro" class="hidden">
+                    <div class="mb-4">
+                        <label class="block text-sm mb-2">Nome Completo</label>
+                        <input type="text" id="nomeCad" class="w-full bg-cardClaro borda-dourada rounded-lg p-3 focus:outline-none">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm mb-2">E-mail</label>
+                        <input type="email" id="emailCad" class="w-full bg-cardClaro borda-dourada rounded-lg p-3 focus:outline-none">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm mb-2">Senha</label>
+                        <input type="password" id="senhaCad" class="w-full bg-cardClaro borda-dourada rounded-lg p-3 focus:outline-none">
+                    </div>
+                    <button onclick="cadastrar()" class="w-full py-3 bg-dourado text-fundo font-bold rounded-lg">Criar Conta</button>
+                    <p class="text-center mt-6 text-textoSuave">Já tem conta? <a href="#" onclick="trocarForm()" class="text-dourado">Entrar</a></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Painel -->
+        <section id="pgPainel" class="pagina hidden">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-display">Meu Painel</h2>
+                <button onclick="abrirModalLoja()" class="px-5 py-2 bg-dourado text-fundo rounded-lg font-medium shadow-dourado">+ Nova Loja</button>
+            </div>
+            <div id="minhasLojas" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </section>
+
+        <!-- Editar Loja -->
+        <section id="pgEditarLoja" class="pagina hidden max-w-3xl mx-auto">
+            <button onclick="irPagina('painel')" class="text-dourado mb-6 flex items-center gap-2"><i class="fa fa-arrow-left"></i> Voltar</button>
+            <h2 id="tituloEditar" class="text-3xl font-display mb-8">Loja</h2>
+            <div class="bg-card p-6 md:p-10 rounded-2xl borda-dourada space-y-6">
+                <div>
+                    <label class="block text-sm mb-2">Nome da Loja</label>
+                    <input type="text" id="edNome" class="w-full bg-cardClaro borda-dourada rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm mb-2">Link da Foto / Logo</label>
+                    <input type="text" id="edFoto" class="w-full bg-cardClaro borda-dourada rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm mb-2">WhatsApp (com DDD)</label>
+                    <input type="text" id="edWpp" class="w-full bg-cardClaro borda-dourada rounded-lg p-3">
+                </div>
+                <button onclick="salvarLoja()" class="w-full py-3 bg-dourado text-fundo font-bold rounded-lg">Salvar Loja</button>
+                <hr class="border-dourado/20 my-10">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-semibold">Produtos</h3>
+                    <button onclick="abrirModalProduto()" class="text-dourado text-sm"><i class="fa fa-plus-circle"></i> Adicionar</button>
+                </div>
+                <div id="listaProdutosAdmin" class="space-y-4"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modais -->
+    <div id="modalProduto" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-card w-full max-w-lg m-4 rounded-2xl borda-dourada p-6 md:p-8 relative">
+            <button onclick="fecharModal('modalProduto')" class="absolute top-5 right-5 text-textoSuave hover:text-dourado text-xl">&times;</button>
+            <h3 class="text-2xl font-display mb-6">Produto</h3>
+            <div class="space-y-4">
+                <input type="text" id="prodNome" placeholder="Nome" class="w-full bg-cardClaro borda-dourada rounded-lg p-3">
+                <input type="text" id="prodFoto" placeholder="Link da imagem" class="w-full bg-cardClaro borda-dourada rounded-lg p-3">
+                <textarea id="prodDesc" rows="2" placeholder="Descrição" class="w-full bg-cardClaro borda-dourada rounded-lg p-3"></textarea>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="prodValor" step="0.01" placeholder="Valor R$" class="w-full bg-cardClaro borda-dourada rounded-lg p-3">
+                    <select id="prodCat" class="w-full bg-cardClaro borda-dourada rounded-lg p-3">
+                        <option value="Lanches">Lanches</option>
+                        <option value="Doces">Doces</option>
+                        <option value="Bebidas">Bebidas</option>
+                        <option value="Pratos">Pratos Feitos</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <button onclick="salvarProduto()" class="w-full py-3 bg-dourado text-fundo font-bold rounded-lg mt-4">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-[90] bg-card borda-dourada shadow-dourado px-6 py-4 rounded-xl transform translate-y-24 opacity-0 transition-all duration-500">
+        <p id="txtToast"></p>
+    </div>
+
+    <script>
+        // ========== FIREBASE CONFIG ==========
+        const firebaseConfig = {
+            apiKey: "AIzaSyCi3Kef0OfnAyn36S0IZdSWFWQSERN7fHc",
+            authDomain: "loja-abc2e.firebaseapp.com",
+            databaseURL: "https://loja-abc2e-default-rtdb.firebaseio.com/",
+            projectId: "loja-abc2e",
+            storageBucket: "loja-abc2e.firebasestorage.app",
+            messagingSenderId: "479752754628",
+            appId: "1:479752754628:web:58b6c80ec3ee666c928091",
+            measurementId: "G-BN96ZCCE9T"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // ========== ESTADO ==========
+        let usuario = null;
+        let lojaAtual = null;
+        let carrinho = [];
+        let editando = null;
+        let historico = ['inicio'];
+
+        // ========== UTILS ==========
+        function $(id) { return document.getElementById(id); }
+        function mostrar(id) { $(id).classList.remove('hidden'); }
+        function esconder(id) { $(id).classList.add('hidden'); }
+
+        function irPagina(nome) {
+            document.querySelectorAll('.pagina').forEach(p => p.classList.add('hidden'));
+            mostrar(`pg${nome.charAt(0).toUpperCase() + nome.slice(1)}`);
+            historico.push(nome);
+            window.scrollTo(0,0);
+            atualizarCarrinhoTela();
+            if(nome === 'painel') carregarPainel();
+            if(nome === 'lojas') carregarLojasInicio();
+        }
+
+        function voltar() {
+            historico.pop();
+            irPagina(historico[historico.length - 1] || 'inicio');
+        }
+
+        function toast(msg) {
+            const t = $('toast');
+            $('txtToast').textContent = msg;
+            t.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-24', 'opacity-0'), 3000);
+        }
+
+        function formatarMoeda(valor) {
+            return 'R$ ' + Number(valor).toFixed(2).replace('.', ',');
+        }
+
+        // ========== INICIO ==========
+        window.onload = () => {
+            setTimeout(() => {
+                $('splash').classList.add('opacity-0', 'pointer-events-none');
+                irPagina('inicio');
+                carregarLojasInicio();
+            }, 1200);
+
+            $('formaPag').addEventListener('change', e => {
+                $('campoTroco').classList.toggle('hidden', e.target.value !== 'dinheiro');
+                calcularTroco();
+            });
+            $('valorPag').addEventListener('input', calcularTroco);
+
+            auth.onAuthStateChanged(u => {
+                usuario = u;
+                atualizarBarraUsuario();
+            });
+        };
+
+        // ========== LOJAS ==========
+        async function carregarLojasInicio() {
+            try {
+                const snap = await db.ref('lojas').once('value');
+                const lista = [];
+                snap.forEach(child => {
+                    lista.push({id: child.key, ...child.val()});
+                });
+                renderizarLojas(lista, 'listaLojas');
+                renderizarLojas(lista, 'gridLojas');
+            } catch(e) {
+                console.error(e);
+                toast('Erro ao carregar lojas');
+            }
+        }
+
+        function renderizarLojas(lojas, containerId) {
+            const c = $(containerId);
+            if(!c) return;
+            c.innerHTML = '';
+            if(!lojas.length) {
+                c.innerHTML = '<p class="text-textoSuave col-span-full text-center py-16">Nenhuma loja cadastrada.</p>';
+                return;
+            }
+            lojas.forEach(loja => {
+                const card = document.createElement('div');
+                card.className = 'bg-card rounded-2xl p-6 borda-dourada shadow-dourado escala-hover cursor-pointer';
+                card.innerHTML = `
+                    <div class="flex items-center gap-5 mb-4">
+                        <img src="${loja.foto || 'https://via.placeholder.com/120/D4AF37/050505?text=CG'}" class="w-16 h-16 rounded-full object-cover borda-dourada-forte">
+                        <div>
+                            <h3 class="font-semibold text-lg">${loja.nome}</h3>
+                            <p class="text-xs text-textoSuave">${loja.whatsapp ? 'Atendimento rápido' : ''}</p>
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); abrirLoja('${loja.id}')" class="w-full py-2.5 bg-cardClaro rounded-lg text-sm font-medium borda-dourada hover:bg-dourado hover:text-fundo">Ver Cardápio</button>
+                `;
+                card.onclick = () => abrirLoja(loja.id);
+                c.appendChild(card);
+            });
+        }
+
+        async function abrirLoja(id) {
+            try {
+                const lojaSnap = await db.ref(`lojas/${id}`).once('value');
+                lojaAtual = {id: id, ...lojaSnap.val()};
+
+                $('capaLoja').src = lojaAtual.foto || 'https://via.placeholder.com/200/D4AF37/050505?text=CG';
+                $('tituloLoja').textContent = lojaAtual.nome;
+                $('telefoneLoja').querySelector('span').textContent = lojaAtual.whatsapp || '';
+                $('linkWhatsAppLoja').href = `https://wa.me/55${(lojaAtual.whatsapp || '').replace(/\D/g,'')}`;
+
+                const prodSnap = await db.ref(`lojas/${id}/produtos`).once('value');
+                const prods = [];
+                prodSnap.forEach(c => prods.push({id: c.key, ...c.val()}));
+
+                const cats = [...new Set(prods.map(p => p.categoria))];
+                $('categorias').innerHTML = `<button class="categoria-btn px-5 py-2 rounded-full bg-dourado text-fundo text-sm font-medium whitespace-nowrap" data-cat="todas">Todas</button>`;
+                cats.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.className = 'categoria-btn px-5 py-2 rounded-full bg-card borda-dourada text-sm whitespace-nowrap hover:bg-dourado hover:text-fundo';
+                    btn.dataset.cat = c;
+                    btn.textContent = c;
+                    btn.onclick = () => filtrarCat(c, prods);
+                    $('categorias').appendChild(btn);
+                });
+
+                renderizarProdutosLoja(prods);
+                irPagina('loja');
+            } catch(e) {
+                toast('Erro ao abrir loja: ' + e.message);
+            }
+        }
+
+        function renderizarProdutosLoja(lista) {
+            $('listaProdutos').innerHTML = '';
+            lista.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'bg-cardClaro rounded-xl p-5 borda-dourada flex gap-5 escala-hover';
+                card.innerHTML = `
+                    <img src="${p.foto || 'https://via.placeholder.com/160/D4AF37/050505?text=Prod'}" class="w-24 h-24 rounded-lg object-cover">
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-semibold text-lg">${p.nome}</h4>
+                            <p class="text-sm text-textoSuave mt-1">${p.descricao || ''}</p>
+                        </div>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="text-dourado font-bold text-lg">${formatarMoeda(p.valor)}</span>
+                            <button onclick="addCarrinho('${p.id}', '${p.nome}', ${p.valor})" class="px-4 py-2 bg-dourado text-fundo rounded-lg text-sm font-medium">Adicionar</button>
+                        </div>
+                    </div>
+                `;
+                $('listaProdutos').appendChild(card);
+            });
+        }
+
+        function filtrarCat(cat, todos) {
+            renderizarProdutosLoja(cat === 'todas' ? todos : todos.filter(p => p.categoria === cat));
+        }
+
+        // ========== CARRINHO ==========
+        function addCarrinho(id, nome, valor) {
+            const item = carrinho.find(i => i.id === id);
+            if(item) item.qtd++;
+            else carrinho.push({id, nome, valor, qtd:1});
+            atualizarCarrinhoTela();
+            toast('Adicionado ao carrinho!');
+        }
+
+        function attQtd(id, delta) {
+            const i = carrinho.find(x => x.id === id);
+            if(!i) return;
+            i.qtd += delta;
+            if(i.qtd <= 0) carrinho = carrinho.filter(x => x.id !== id);
+            atualizarCarrinhoTela();
+        }
+
+        function atualizarCarrinhoTela() {
+            const qtdeItens = carrinho.reduce((s, i) => s + i.qtd, 0);
+            const total = carrinho.reduce((s, i) => s + (i.valor * i.qtd), 0);
+
+            const badge = $('badgeCarrinho');
+            badge.classList.toggle('scale-0', qtdeItens === 0);
+            badge.textContent = qtdeItens;
+
+            $('valorTotal').textContent = formatarMoeda(total);
+
+            if($('pgCarrinho').classList.contains('hidden') === false) {
+                $('itensCarrinho').innerHTML = '';
+                carrinho.forEach(i => {
+                    $('itensCarrinho').innerHTML += `
+                        <div class="bg-cardClaro rounded-xl p-5 borda-dourada flex justify-between items-center">
+                            <div>
+                                <h4 class="font-medium">${i.nome}</h4>
+                                <p class="text-dourado text-sm">${formatarMoeda(i.valor)} cada</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <button onclick="attQtd('${i.id}', -1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-card borda-dourada hover:bg-dourado">-</button>
+                                <span class="w-6 text-center font-medium">${i.qtd}</span>
+                                <button onclick="attQtd('${i.id}', 1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-card borda-dourada hover:bg-dourado">+</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                $('resumoCompra').classList.toggle('hidden', carrinho.length === 0);
+                $('vazioCarrinho').classList.toggle('hidden', carrinho.length > 0);
+            }
+        }
+
+        function calcularTroco() {
+            const total = carrinho.reduce((s, i) => s + (i.valor * i.qtd), 0);
+            const pago = parseFloat($('valorPag').value) || 0;
+            $('textoTroco').textContent = pago >= total ? `Troco: ${formatarMoeda(pago - total)}` : '';
+        }
+
+        $('btnFinalizar').onclick = () => {
+            if(!lojaAtual) return toast('Escolha uma loja primeiro!');
+            if(!carrinho.length) return toast('Carrinho vazio!');
+
+            const total = carrinho.reduce((s, i) => s + (i.valor * i.qtd), 0);
+            const pg = $('formaPag').value;
+            let msg = `*PEDIDO - ${lojaAtual.nome.toUpperCase()}*\n\n`;
+            carrinho.forEach(i => msg += `${i.qtd}x ${i.nome} - ${formatarMoeda(i.valor * i.qtd)}\n`);
+            msg += `\n*TOTAL: ${formatarMoeda(total)}*\n`;
+            msg += `*Pagamento: ${pg === 'pix' ? 'Pix' : pg === 'cartao' ? 'Cartão' : 'Dinheiro'}*\n`;
+            if(pg === 'dinheiro' && $('valorPag').value) {
+                msg += `Pagar com: ${formatarMoeda($('valorPag').value)}\nTroco: ${$('textoTroco').textContent || ''}`;
+            }
+
+            const wpp = (lojaAtual.whatsapp || '').replace(/\D/g, '');
+            window.open(`https://wa.me/55${wpp}?text=${encodeURIComponent(msg)}`, '_blank');
+            toast('Pedido enviado!');
+            carrinho = [];
+            atualizarCarrinhoTela();
+        };
+
+        // ========== AUTENTICAÇÃO ==========
+        function trocarForm() {
+            $('formLogin').classList.toggle('hidden');
+            $('formCadastro').classList.toggle('hidden');
+        }
+
+        async function logar() {
+            try {
+                const u = await auth.signInWithEmailAndPassword($('emailLogin').value, $('senhaLogin').value);
+                usuario = u.user;
+                atualizarBarraUsuario();
+                irPagina('painel');
+                toast('Logado com sucesso!');
+            } catch(e) {
+                toast('Erro: ' + e.message);
+            }
+        }
+
+        async function cadastrar() {
+            try {
+                const u = await auth.createUserWithEmailAndPassword($('emailCad').value, $('senhaCad').value);
+                usuario = u.user;
+                await db.ref(`usuarios/${u.user.uid}`).set({
+                    nome: $('nomeCad').value,
+                    email: u.user.email,
+                    admin: false
+                });
+                atualizarBarraUsuario();
+                irPagina('painel');
+                toast('Conta criada!');
+            } catch(e) {
+                toast('Erro: ' + e.message);
+            }
+        }
+
+        function adminRapido() {
+            $('emailLogin').value = 'admin@cg.com.br';
+            $('senhaLogin').value = 'cg12345';
+            toast('Dados de admin preenchidos!');
+        }
+
+        function deslogar() {
+            auth.signOut();
+            usuario = null;
+            atualizarBarraUsuario();
+            irPagina('inicio');
+            toast('Desconectado');
+        }
+
+        function atualizarBarraUsuario() {
+            if(usuario) {
+                $('btnEntrar').classList.add('hidden');
+                $('menuUsuario').classList.remove('hidden');
+                $('menuUsuario').classList.add('flex');
+                $('nomeUsuario').textContent = usuario.email?.split('@')[0] || '';
+            } else {
+                $('btnEntrar').classList.remove('hidden');
+                $('menuUsuario').classList.add('hidden');
+                $('menuUsuario').classList.remove('flex');
+            }
+        }
+
+        // ========== PAINEL ==========
+        async function carregarPainel() {
+            if(!usuario) return;
+            try {
+                const snap = await db.ref('lojas').orderByChild('donoId').equalTo(usuario.uid).once('value');
+                const minhas = [];
+                snap.forEach(c => minhas.push({id: c.key, ...c.val()}));
+                $('minhasLojas').innerHTML = '';
+                minhas.forEach(l => {
+                    $('minhasLojas').innerHTML += `
+                        <div class="bg-card p-6 rounded-2xl borda-dourada flex justify-between items-center escala-hover">
+                            <div class="flex items-center gap-4">
+                                <img src="${l.foto || 'https://via.placeholder.com/80/D4AF37/050505?text=CG'}" class="w-14 h-14 rounded-full object-cover borda-dourada">
+                                <div>
+                                    <h4 class="font-semibold">${l.nome}</h4>
+                                    <p class="text-xs text-textoSuave">${l.whatsapp || ''}</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="editarLoja('${l.id}')" class="text-dourado"><i class="fa fa-pencil"></i></button>
+                                <button onclick="apagarLoja('${l.id}')" class="text-erro"><i class="fa fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                toast('Erro ao carregar painel: ' + e.message);
+            }
+        }
+
+        function abrirModalLoja() {
+            lojaAtual = null;
+            $('edNome').value = '';
+            $('edFoto').value = '';
+            $('edWpp').value = '';
+            $('listaProdutosAdmin').innerHTML = '';
+            irPagina('editarLoja');
+        }
+
+        async function editarLoja(id) {
+            try {
+                const snap = await db.ref(`lojas/${id}`).once('value');
+                lojaAtual = {id: id, ...snap.val()};
+                $('edNome').value = lojaAtual.nome;
+                $('edFoto').value = lojaAtual.foto || '';
+                $('edWpp').value = lojaAtual.whatsapp || '';
+                await carregarProdutosAdmin();
+                irPagina('editarLoja');
+            } catch(e) {
+                toast('Erro ao abrir loja: ' + e.message);
+            }
+        }
+
+        async function salvarLoja() {
+            if(!usuario) return toast('Faça login primeiro!');
+            try {
+                const dados = {
+                    nome: $('edNome').value,
+                    foto: $('edFoto').value,
+                    whatsapp: $('edWpp').value.replace(/\D/g, ''),
+                    donoId: usuario.uid
+                };
+                if(lojaAtual) {
+                    await db.ref(`lojas/${lojaAtual.id}`).update(dados);
+                    toast('Loja atualizada!');
+                } else {
+                    const novaRef = await db.ref('lojas').push(dados);
+                    lojaAtual = {id: novaRef.key, ...dados};
+                    toast('Loja criada com sucesso!');
+                }
+                carregarLojasInicio();
+                carregarPainel();
+            } catch(e) {
+                toast('Erro ao salvar: ' + e.message);
+            }
+        }
+
+        async function apagarLoja(id) {
+            if(!confirm('Tem certeza? Isso apaga tudo da loja.')) return;
+            try {
+                await db.ref(`lojas/${id}`).remove();
+                toast('Apagado!');
+                carregarLojasInicio();
+                carregarPainel();
+            } catch(e) {
+                toast('Erro ao apagar: ' + e.message);
+            }
+        }
+
+        async function carregarProdutosAdmin() {
+            if(!lojaAtual) return;
+            try {
+                const snap = await db.ref(`lojas/${lojaAtual.id}/produtos`).once('value');
+                $('listaProdutosAdmin').innerHTML = '';
+                snap.forEach(c => {
+                    const p = {id: c.key, ...c.val()};
+                    $('listaProdutosAdmin').innerHTML += `
+                        <div class="flex justify-between items-center py-4 border-b border-dourado/10">
+                            <div>
+                                <p class="font-medium">${p.nome}</p>
+                                <p class="text-xs text-textoSuave">${formatarMoeda(p.valor)} • ${p.categoria}</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="editarProd('${p.id}')" class="text-dourado text-sm"><i class="fa fa-pencil"></i></button>
+                                <button onclick="apagarProd('${p.id}')" class="text-erro text-sm"><i class="fa fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                toast('Erro produtos: ' + e.message);
+            }
+        }
+
+        function abrirModalProduto() {
+            editando = null;
+            $('prodNome').value = '';
+            $('prodFoto').value = '';
+            $('prodDesc').value = '';
+            $('prodValor').value = '';
+            $('prodCat').value = 'Lanches';
+            $('modalProduto').classList.remove('hidden');
+            $('modalProduto').classList.add('flex');
+        }
+
+        function fecharModal(id) {
+            $(id).classList.add('hidden');
+            $(id).classList.remove('flex');
+        }
+
+        async function salvarProduto() {
+            if(!lojaAtual) return toast('Salve a loja primeiro!');
+            try {
+                const dados = {
+                    nome: $('prodNome').value,
+                    foto: $('prodFoto').value,
+                    descricao: $('prodDesc').value,
+                    valor: Number($('prodValor').value),
+                    categoria: $('prodCat').value
+                };
+                if(editando) {
+                    await db.ref(`lojas/${lojaAtual.id}/produtos/${editando}`).update(dados);
+                } else {
+                    await db.ref(`lojas/${lojaAtual.id}/produtos`).push(dados);
+                }
+                fecharModal('modalProduto');
+                toast('Produto salvo!');
+                carregarProdutosAdmin();
+            } catch(e) {
+                toast('Erro: ' + e.message);
+            }
+        }
+
+        async function editarProd(id) {
+            editando = id;
+            try {
+                const snap = await db.ref(`lojas/${lojaAtual.id}/produtos/${id}`).once('value');
+                const p = snap.val();
+                $('prodNome').value = p.nome;
+                $('prodFoto').value = p.foto || '';
+                $('prodDesc').value = p.descricao || '';
+                $('prodValor').value = p.valor;
+                $('prodCat').value = p.categoria;
+                $('modalProduto').classList.remove('hidden');
+                $('modalProduto').classList.add('flex');
+            } catch(e) {
+                toast('Erro ao editar: ' + e.message);
+            }
+        }
+
+        async function apagarProd(id) {
+            if(!confirm('Excluir esse produto?')) return;
+            try {
+                await db.ref(`lojas/${lojaAtual.id}/produtos/${id}`).remove();
+                toast('Excluído!');
+                carregarProdutosAdmin();
+            } catch(e) {
+                toast('Erro ao excluir: ' + e.message);
+            }
+        }
+
+        function compartilharLoja() {
+            navigator.clipboard.writeText(window.location.href + `?loja=${lojaAtual.id}`);
+            toast('Link copiado!');
+        }
+    </script>
+</body>
+</html>
