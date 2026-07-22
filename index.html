@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C.G Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuração das cores -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        principal: '#FFFFFF',    // Branco (foco)
+                        destaque: '#F5F0E6',     // Bege
+                        acento: '#E53935'        // Vermelho
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #FFFFFF;
+        }
+        .logo-cg {
+            font-weight: 900;
+            font-size: 1.8rem;
+            color: #E53935;
+            letter-spacing: -1px;
+        }
+        .card-loja {
+            transition: all 0.3s ease;
+        }
+        .card-loja:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-principal text-gray-800">
+
+    <!-- Cabeçalho -->
+    <header class="bg-destaque shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="logo-cg">C.G</div>
+            
+            <!-- Menu -->
+            <nav class="hidden md:flex gap-6 font-medium">
+                <a href="#" class="hover:text-acento">Início</a>
+                <a href="#categorias" class="hover:text-acento">Categorias</a>
+                <a href="#lojas" class="hover:text-acento">Lojas</a>
+                <a href="#" class="hover:text-acento">Contato</a>
+            </nav>
+
+            <!-- Busca -->
+            <div class="flex gap-2">
+                <input type="text" id="busca" placeholder="Buscar loja..." 
+                    class="px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-acento">
+                <button onclick="buscarLojas()" class="bg-acento text-white px-4 py-2 rounded hover:bg-red-700">
+                    Buscar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Seção Hero / Destaque -->
+    <section class="bg-gradient-to-br from-destaque to-principal py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-4">
+                Bem-vindo ao <span class="text-acento">C.G Marketplace</span>
+            </h1>
+            <p class="text-lg max-w-2xl mx-auto mb-8">
+                O lugar certo para encontrar tudo o que precisa. Rápido, seguro e direto com o vendedor!
+            </p>
+            <a href="#lojas" class="inline-block bg-acento text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-red-700">
+                Ver Lojas
+            </a>
+        </div>
+    </section>
+
+    <!-- Categorias -->
+    <section id="categorias" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl font-bold text-center mb-10 text-acento">Categorias</h2>
+            <div id="lista-categorias" class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
+                <!-- Carregado pelo Firebase -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Lista de Lojas -->
+    <section id="lojas" class="py-16 bg-destaque">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl font-bold text-center mb-10 text-acento">Nossas Lojas</h2>
+            <div id="lista-lojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Lojas carregadas do Firebase -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer class="bg-gray-900 text-white py-10">
+        <div class="container mx-auto px-4 text-center">
+            <div class="logo-cg inline-block mb-4">C.G</div>
+            <p class="text-gray-400">Marketplace Multi-Categoria • Simples e Rápido</p>
+            <p class="text-gray-500 text-sm mt-2">© 2026 C.G - Todos os direitos reservados</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Configuração do seu projeto
+        const firebaseConfig = {
+          apiKey: "AIzaSyAhI04lOGs4NGC0n9c2NSUqC-puBLVAG4A",
+          authDomain: "market-place-33da8.firebaseapp.com",
+          databaseURL: "https://market-place-33da8-default-rtdb.firebaseio.com",
+          projectId: "market-place-33da8",
+          storageBucket: "market-place-33da8.firebasestorage.app",
+          messagingSenderId: "863627503284",
+          appId: "1:863627503284:web:1ddbe57824fd3d568219e1"
+        };
+
+        // Inicializa
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Elementos da tela
+        const listaLojas = document.getElementById('lista-lojas');
+        const listaCategorias = document.getElementById('lista-categorias');
+        let todasLojas = [];
+
+        // Carregar Lojas
+        const lojasRef = ref(db, 'lojas');
+        onValue(lojasRef, (snap) => {
+            const dados = snap.val();
+            todasLojas = dados ? Object.entries(dados).map(([id, loja]) => ({id, ...loja})) : [];
+            mostrarLojas(todasLojas);
+        });
+
+        // Carregar Categorias
+        const catRef = ref(db, 'categorias');
+        onValue(catRef, snap => {
+            const cats = snap.val() || [];
+            listaCategorias.innerHTML = cats.map(c => `
+                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer" onclick="filtrarPorCategoria('${c}')">
+                    <h3 class="font-semibold text-acento">${c}</h3>
+                </div>
+            `).join('');
+        });
+
+        // Mostrar lojas na tela
+        function mostrarLojas(lista) {
+            listaLojas.innerHTML = lista.length ? lista.map(loja => `
+                <div class="card-loja bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold mb-2">${loja.nome}</h3>
+                    <p class="text-sm text-gray-500 mb-1">${loja.categoria}</p>
+                    <p class="mb-4 text-gray-600">${loja.descricao || ''}</p>
+                    <a href="${loja.link}" target="_blank" 
+                       class="inline-block w-full text-center bg-acento text-white py-2 rounded hover:bg-red-700 font-medium">
+                        Acessar Loja
+                    </a>
+                </div>
+            `).join('') : '<p class="col-span-full text-center">Nenhuma loja encontrada.</p>';
+        }
+
+        // Busca
+        window.buscarLojas = () => {
+            const termo = document.getElementById('busca').value.toLowerCase();
+            const filtradas = todasLojas.filter(l => 
+                l.nome.toLowerCase().includes(termo) || 
+                l.categoria.toLowerCase().includes(termo)
+            );
+            mostrarLojas(filtradas);
+        };
+
+        // Filtro por categoria
+        window.filtrarPorCategoria = (cat) => {
+            mostrarLojas(todasLojas.filter(l => l.categoria === cat));
+            document.getElementById('lojas').scrollIntoView({behavior: 'smooth'});
+        };
+    </script>
+</body>
+</html>
