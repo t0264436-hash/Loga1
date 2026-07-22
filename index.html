@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C.G Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fundo: '#FFFFFF',
+                        suave: '#F5F0E6',
+                        destaque: '#E53935'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #fff; margin: 0; }
+        .logo { font-weight: 900; font-size: 1.8rem; color: #E53935; cursor: pointer; user-select: none; }
+        .card-loja { transition: all 0.3s ease; }
+        .card-loja:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; }
+        .modal.ativo { display:flex; }
+        .painel { display:none; position:fixed; inset:0; background:#fff; z-index:9998; overflow-y:auto; padding-bottom:2rem; }
+        .painel.aberto { display:block; }
+        .btn { padding:0.75rem; border-radius:6px; font-weight:600; border:none; cursor:pointer; transition:0.2s; }
+        .btn-verm { background:#E53935; color:white; }
+        .btn-verm:hover { background:#c62828; }
+        .btn-cinz { background:#757575; color:white; }
+        .btn-cinz:hover { background:#616161; }
+        .input { width:100%; padding:0.75rem; margin:0.5rem 0; border:1px solid #ddd; border-radius:6px; box-sizing:border-box; }
+        .carrinho{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #ddd;padding:1rem;z-index:50;box-shadow:0 -5px 15px rgba(0,0,0,0.1);}
+        @media(min-width:768px){.carrinho{top:0;right:0;left:auto;width:340px;border-left:2px solid #ddd;border-top:none;}}
+        .aviso { padding:0.75rem; border-radius:6px; margin:1rem 0; display:none; }
+        .aviso.sucesso { background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9; display:block; }
+        .aviso.erro { background:#ffebee; color:#c62828; border:1px solid #ffcdd2; display:block; }
+    </style>
+</head>
+<body>
+
+<!-- Cabeçalho -->
+<header class="bg-suave shadow-md sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="logo" id="btnAdmin">C.G</div>
+        <input type="text" id="busca" placeholder="Buscar loja..." class="px-3 py-2 rounded border w-64">
+    </div>
+</header>
+
+<!-- PÁGINA INICIAL -->
+<div id="paginaInicial" class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center mb-2 text-destaque">C.G Marketplace</h1>
+    <p class="text-center text-gray-600 mb-10">Escolha uma loja e peça direto pelo WhatsApp</p>
+    <div id="listaLojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+</div>
+
+<!-- PÁGINA DA LOJA -->
+<div id="paginaLoja" class="hidden container mx-auto px-4 py-6 pb-44 md:pr-88">
+    <a href="#" onclick="voltarInicio(); return false;" class="text-destaque font-semibold">← Voltar ao Início</a>
+    <div id="topoLoja" class="my-6"></div>
+    <div id="listaProd" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</div>
+
+<!-- CARRINHO ISOLADO -->
+<div id="carrinho" class="carrinho hidden">
+    <h4 class="font-bold text-destaque mb-2">🛒 Meu Pedido</h4>
+    <div id="nomeLojaCarrinho" class="text-sm text-gray-600 mb-2 font-medium"></div>
+    <div id="itensCarrinho" class="max-h-40 overflow-y-auto mb-2"></div>
+    <div class="font-bold mb-2">Total: R$ <span id="total">0,00</span></div>
+    <select id="pagamento" class="input">
+        <option value="Pix">💸 Pix</option>
+        <option value="Cartão">💳 Cartão</option>
+        <option value="Dinheiro">💵 Dinheiro</option>
+    </select>
+    <input type="number" id="troco" placeholder="Troco para quanto?" class="input hidden">
+    <button onclick="enviarPedido()" class="btn btn-verm w-full">✅ Enviar Pedido</button>
+</div>
+
+<!-- TELA DE ACESSO -->
+<div id="telaSenha" class="modal">
+    <div class="bg-white p-6 rounded-xl w-80 shadow-2xl">
+        <h3 class="text-xl font-bold mb-4 text-center text-destaque">🔐 Acesso Administrativo</h3>
+        <input type="password" id="senhaPainel" placeholder="Senha do painel" class="input" autocomplete="off">
+        <div id="avisoLogin" class="aviso"></div>
+        <div class="flex gap-2 mt-3">
+            <button onclick="fecharSenha()" class="btn btn-cinz flex-1">Cancelar</button>
+            <button onclick="verificarAcesso()" class="btn btn-verm flex-1">Entrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- PAINEL ADMIN -->
+<div id="painelAdmin" class="painel">
+    <div class="container mx-auto px-4 py-6 max-w-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-destaque">⚙️ Painel de Controle</h2>
+            <button onclick="sairAdmin()" class="btn btn-cinz" style="width:auto;">Sair</button>
+        </div>
+
+        <div id="avisoGeral" class="aviso"></div>
+
+        <!-- CADASTRAR LOJA -->
+        <div class="bg-suave p-5 rounded-lg mb-6">
+            <h3 class="text-lg font-semibold mb-3">🏪 Cadastrar Loja</h3>
+            <form id="formLoja">
+                <input type="text" id="nomeLoja" placeholder="Nome da Loja" required class="input">
+                <input type="text" id="wppLoja" placeholder="WhatsApp (apenas números com DDD)" required class="input">
+                <input type="file" id="fotoLoja" accept="image/*" class="input">
+                <button type="submit" class="btn btn-verm w-full">💾 Salvar Loja</button>
+            </form>
+        </div>
+
+        <!-- CADASTRAR PRODUTO -->
+        <div class="bg-suave p-5 rounded-lg">
+            <h3 class="text-lg font-semibold mb-3">🍔 Cadastrar Produto</h3>
+            <select id="selLojaProd" class="input" required>
+                <option value="">Selecione a Loja</option>
+            </select>
+            <form id="formProduto">
+                <input type="text" id="nomeProd" placeholder="Nome do Produto" required class="input">
+                <input type="number" step="0.01" min="0.01" id="precoProd" placeholder="Preço R$" required class="input">
+                <input type="file" id="fotoProd" accept="image/*" class="input">
+                <button type="submit" class="btn btn-verm w-full">💾 Salvar Produto</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- INTEGRAÇÃO COMPLETA -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    // SEUS DADOS PRONTOS
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhI04lOGs4NGC0n9c2NSUqC-puBLVAG4A",
+        authDomain: "market-place-33da8.firebaseapp.com",
+        databaseURL: "https://market-place-33da8-default-rtdb.firebaseio.com",
+        projectId: "market-place-33da8",
+        storageBucket: "market-place-33da8.firebasestorage.app",
+        messagingSenderId: "863627503284",
+        appId: "1:863627503284:web:1ddbe57824fd3d568219e1"
+    };
+    const CHAVE_IMGBB = "8e6694726060a78a9ef5261bf1d67135";
+    const EMAIL_ADM = "g84039101@gmail.com";
+    const SENHA_FIREBASE = "37511158";
+    const SENHA_PAINEL = "3103";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+    let lojas = [], lojaAtual = null, carrinho = [];
+
+    // --- FUNÇÕES GERAIS ---
+    function mostrarAviso(el, texto, tipo='sucesso'){
+        const av = document.getElementById(el);
+        av.className = `aviso ${tipo}`;
+        av.textContent = texto;
+        setTimeout(()=>av.className='aviso', 3500);
+    }
+
+    async function enviarFoto(arquivo){
+        const form = new FormData();
+        form.append('image', arquivo);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${CHAVE_IMGBB}`, {method:'POST', body:form});
+        const dados = await res.json();
+        return dados.data.url;
+    }
+
+    // --- NAVEGAÇÃO ---
+    document.getElementById('btnAdmin').onclick = ()=>document.getElementById('telaSenha').classList.add('ativo');
+    window.fecharSenha = ()=>document.getElementById('telaSenha').classList.remove('ativo');
+    window.voltarInicio = ()=>{
+        document.getElementById('paginaInicial').classList.remove('hidden');
+        document.getElementById('paginaLoja').classList.add('hidden');
+        document.getElementById('carrinho').classList.add('hidden');
+        carrinho = [];
+    };
+    window.sairAdmin = ()=>{
+        document.getElementById('painelAdmin').classList.remove('aberto');
+        document.getElementById('paginaInicial').classList.remove('hidden');
+    };
+
+    // --- LOGIN SEGURO ---
+    window.verificarAcesso = async ()=>{
+        const senha = document.getElementById('senhaPainel').value;
+        if(senha !== SENHA_PAINEL) return mostrarAviso('avisoLogin', 'Senha do painel incorreta!', 'erro');
+
+        try {
+            await signInWithEmailAndPassword(auth, EMAIL_ADM, SENHA_FIREBASE);
+            fecharSenha();
+            document.getElementById('paginaInicial').classList.add('hidden');
+            document.getElementById('painelAdmin').classList.add('aberto');
+            mostrarAviso('avisoGeral', '✅ Acesso liberado com sucesso!');
+        } catch (erro) {
+            mostrarAviso('avisoLogin', 'Erro no login: ' + erro.message, 'erro');
+        }
+    };
+
+    // --- CARREGAR DADOS DO BANCO ---
+    onValue(ref(db, 'lojas'), snap=>{
+        lojas = snap.val() ? Object.entries(snap.val()).map(([id,dados])=>({id, ...dados})) : [];
+        atualizarTelaInicial();
+        atualizarSelectLojas();
+    });
+
+    function atualizarTelaInicial(filtro=''){
+        const lista = filtro ? lojas.filter(l=>l.nome.toLowerCase().includes(filtro.toLowerCase())) : lojas;
+        document.getElementById('listaLojas').innerHTML = lista.length ? lista.map(l=>`
+            <div onclick="abrirLoja('${l.id}')" class="card-loja bg-suave rounded-xl overflow-hidden cursor-pointer">
+                <img src="${l.foto}" class="w-full h-48 object-cover" loading="lazy">
+                <div class="p-4">
+                    <h3 class="text-xl font-bold">${l.nome}</h3>
+                    <p class="text-gray-600">${l.produtos ? Object.keys(l.produtos).length : 0} produtos</p>
+                    <div class="btn btn-verm text-center mt-3">Ver Loja</div>
+                </div>
+            </div>
+        `).join('') : '<p class="col-span-full text-center text-gray-500">Nenhuma loja cadastrada ainda.</p>';
+    }
+    window.atualizarSelectLojas = ()=>{
+        document.getElementById('selLojaProd').innerHTML = `<option value="">Selecione a Loja</option>`
+            + lojas.map(l=>`<option value="${l.id}">${l.nome}</option>`).join('');
+    };
+    document.getElementById('busca').oninput = e=>atualizarTelaInicial(e.target.value);
+
+    // --- ABRIR LOJA E CARRINHO ISOLADO ---
+    window.abrirLoja = id=>{
+        lojaAtual = lojas.find(l=>l.id===id);
+        carrinho = [];
+        document.getElementById('paginaInicial').classList.add('hidden');
+        document.getElementById('painelAdmin').classList.remove('aberto');
+        document.getElementById('paginaLoja').classList.remove('hidden');
+        document.getElementById('carrinho').classList.remove('hidden');
+        document.getElementById('nomeLojaCarrinho').textContent = `Pedido para: ${lojaAtual.nome}`;
+        document.getElementById('topoLoja').innerHTML = `
+            <img src="${lojaAtual.foto}" class="w-full h-56 object-cover rounded-xl shadow-lg">
+            <h2 class="text-3xl font-bold mt-4 text-destaque">${lojaAtual.nome}</h2>
+        `;
+        const produtos = lojaAtual.produtos ? Object.entries(lojaAtual.produtos) : [];
+        document.getElementById('listaProd').innerHTML = produtos.map(([pid,p])=>`
+            <div class="bg-white p-4 rounded-xl shadow">
+                <img src="${p.foto}" class="w-full h-40 object-cover rounded mb-2" loading="lazy">
+                <h4 class="font-bold">${p.nome}</h4>
+                <p class="text-destaque font-bold mt-1">R$ ${p.preco.toFixed(2)}</p>
+                <button onclick="adicionarItem('${pid}')" class="btn btn-verm w-full mt-2">+ Adicionar</button>
+            </div>
+        `).join('');
+        atualizarCarrinho();
+    };
+
+    function adicionarItem(idProd){
+        const prod = lojaAtual.produtos[idProd];
+        const item = carrinho.find(i=>i.id===idProd);
+        item ? item.qtd++ : carrinho.push({id:idProd, ...prod, qtd:1});
+        atualizarCarrinho();
+    }
+    function atualizarCarrinho(){
+        document.getElementById('itensCarrinho').innerHTML = carrinho.map(i=>`
+            <div class="flex justify-between py-1 border-b">
+                <span>${i.qtd}x ${i.nome}</span>
+                <span>R$ ${(i.preco*i.qtd).toFixed(2)}</span>
+            </div>
+        `).join('');
+        const total = carrinho.reduce((s,i)=>s+(i.preco*i.qtd),0);
+        document.getElementById('total').textContent = total.toFixed(2);
+    }
+    document.getElementById('pagamento').onchange = e=>{
+        document.getElementById('troco').classList.toggle('hidden', e.target.value!=='Dinheiro');
+    };
+    window.enviarPedido = ()=>{
+        if(!carrinho.length) return alert('Adicione pelo menos um produto!');
+        let mensagem = `*NOVO PEDIDO - ${lojaAtual.nome}*\n\n`;
+        carrinho.forEach(i=>mensagem += `${i.qtd}x ${i.nome} - R$ ${(i.preco*i.qtd).toFixed(2)}\n`);
+        const total = carrinho.reduce((s,i)=>s+(i.preco*i.qtd),0);
+        mensagem += `\n*Total: R$ ${total.toFixed(2)}*`;
+        mensagem += `\nForma de pagamento: ${document.getElementById('pagamento').value}`;
+        if(document.getElementById('pagamento').value==='Dinheiro' && document.getElementById('troco').value){
+            mensagem += `\nPrecisa de troco para: R$ ${document.getElementById('troco').value}`;
+        }
+        window.open(`https://wa.me/55${lojaAtual.wpp}?text=${encodeURIComponent(mensagem)}`);
+    };
+
+    // --- CADASTRAR LOJA ---
+    document.getElementById('formLoja').onsubmit = async e=>{
+        e.preventDefault();
+        try {
+            const foto = await enviarFoto(document.getElementById('fotoLoja').files[0]);
+            await push(ref(db, 'lojas'), {
+                nome: document.getElementById('nomeLoja').value.trim(),
+                wpp: document.getElementById('wppLoja').value.replace(/\D/g,''),
+                foto: foto,
+                produtos: {}
+            });
+            mostrarAviso('avisoGeral', '✅ Loja cadastrada com sucesso!');
+            e.target.reset();
+        } catch (erro) {
+            mostrarAviso('avisoGeral', '❌ Erro: ' + erro.message, 'erro');
+        }
+    };
+
+    // --- CADASTRAR PRODUTO ---
+    document.getElementById('formProduto').onsubmit = async e=>{
+        e.preventDefault();
+        const idLoja = document.getElementById('selLojaProd').value;
+        if(!idLoja) return mostrarAviso('avisoGeral', 'Selecione uma loja primeiro!', 'erro');
+        try {
+            const foto = await enviarFoto(document.getElementById('fotoProd').files[0]);
+            await push(ref(db, `lojas/${idLoja}/produtos`), {
+                nome: document.getElementById('nomeProd').value.trim(),
+                preco: parseFloat(document.getElementById('precoProd').value),
+                foto: foto
+            });
+            mostrarAviso('avisoGeral', '✅ Produto cadastrado!');
+            e.target.reset();
+        } catch (erro) {
+            mostrarAviso('avisoGeral', '❌ Erro: ' + erro.message, 'erro');
+        }
+    };
+</script>
+</body>
+</html>
