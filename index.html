@@ -5,48 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>C.G Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configuração das cores -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        principal: '#FFFFFF',    // Branco (foco)
-                        destaque: '#F5F0E6',     // Bege
-                        acento: '#E53935'        // Vermelho
+                        principal: '#FFFFFF',
+                        destaque: '#F5F0E6',
+                        acento: '#E53935'
                     }
                 }
             }
         }
     </script>
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #FFFFFF;
-        }
-        .logo-cg {
-            font-weight: 900;
-            font-size: 1.8rem;
-            color: #E53935;
-            letter-spacing: -1px;
-        }
-        .card-loja {
-            transition: all 0.3s ease;
-        }
-        .card-loja:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #FFFFFF; }
+        .logo-cg { font-weight: 900; font-size: 1.8rem; color: #E53935; letter-spacing: -1px; cursor: pointer; user-select: none; }
+        .card-loja { transition: all 0.3s ease; }
+        .card-loja:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal { display: none; position: fixed; inset: 0 bg-black/50 z-50 flex items-center justify-center; }
+        .modal.ativo { display: flex; }
+        .painel-adm { display: none; }
+        .painel-adm.aberto { display: block; }
+        .drop-area { border: 3px dashed #ccc; border-radius: 8px; padding: 40px; text-align: center; transition: all 0.3s; }
+        .drop-area.highlight { border-color: #E53935; background-color: #fff5f5; }
     </style>
 </head>
 <body class="bg-principal text-gray-800">
 
     <!-- Cabeçalho -->
-    <header class="bg-destaque shadow-md sticky top-0 z-50">
+    <header class="bg-destaque shadow-md sticky top-0 z-40">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="logo-cg">C.G</div>
+            <!-- Logo CLICÁVEL para ADM -->
+            <div class="logo-cg" id="logoAdmin">C.G</div>
             
-            <!-- Menu -->
             <nav class="hidden md:flex gap-6 font-medium">
                 <a href="#" class="hover:text-acento">Início</a>
                 <a href="#categorias" class="hover:text-acento">Categorias</a>
@@ -54,7 +46,6 @@
                 <a href="#" class="hover:text-acento">Contato</a>
             </nav>
 
-            <!-- Busca -->
             <div class="flex gap-2">
                 <input type="text" id="busca" placeholder="Buscar loja..." 
                     class="px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-acento">
@@ -65,56 +56,113 @@
         </div>
     </header>
 
-    <!-- Seção Hero / Destaque -->
-    <section class="bg-gradient-to-br from-destaque to-principal py-16">
-        <div class="container mx-auto px-4 text-center">
-            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-4">
-                Bem-vindo ao <span class="text-acento">C.G Marketplace</span>
-            </h1>
-            <p class="text-lg max-w-2xl mx-auto mb-8">
-                O lugar certo para encontrar tudo o que precisa. Rápido, seguro e direto com o vendedor!
-            </p>
-            <a href="#lojas" class="inline-block bg-acento text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-red-700">
-                Ver Lojas
-            </a>
-        </div>
-    </section>
+    <!-- Conteúdo Público -->
+    <div id="conteudoPublico">
+        <section class="bg-gradient-to-br from-destaque to-principal py-16">
+            <div class="container mx-auto px-4 text-center">
+                <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-4">
+                    Bem-vindo ao <span class="text-acento">C.G Marketplace</span>
+                </h1>
+                <p class="text-lg max-w-2xl mx-auto mb-8">
+                    O lugar certo para encontrar tudo o que precisa. Rápido, seguro e direto com o vendedor!
+                </p>
+                <a href="#lojas" class="inline-block bg-acento text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-red-700">
+                    Ver Lojas
+                </a>
+            </div>
+        </section>
 
-    <!-- Categorias -->
-    <section id="categorias" class="py-16 bg-white">
-        <div class="container mx-auto px-4">
-            <h2 class="text-2xl font-bold text-center mb-10 text-acento">Categorias</h2>
-            <div id="lista-categorias" class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
-                <!-- Carregado pelo Firebase -->
+        <section id="categorias" class="py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-bold text-center mb-10 text-acento">Categorias</h2>
+                <div id="lista-categorias" class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center"></div>
+            </div>
+        </section>
+
+        <section id="lojas" class="py-16 bg-destaque">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-bold text-center mb-10 text-acento">Nossas Lojas</h2>
+                <div id="lista-lojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+            </div>
+        </section>
+
+        <footer class="bg-gray-900 text-white py-10">
+            <div class="container mx-auto px-4 text-center">
+                <div class="logo-cg inline-block mb-4">C.G</div>
+                <p class="text-gray-400">Marketplace Multi-Categoria • Simples e Rápido</p>
+                <p class="text-gray-500 text-sm mt-2">© 2026 C.G - Todos os direitos reservados</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL DE SENHA -->
+    <div id="modalSenha" class="modal">
+        <div class="bg-white rounded-lg p-8 max-w-sm w-full mx-4 shadow-2xl">
+            <h3 class="text-xl font-bold mb-4 text-center text-acento">🔐 Área do Administrador</h3>
+            <input type="password" id="inputSenha" placeholder="Digite sua senha" 
+                class="w-full px-4 py-3 border rounded mb-4 focus:outline-none focus:border-acento">
+            <div class="flex gap-3">
+                <button onclick="fecharModal()" class="flex-1 bg-gray-300 py-2 rounded hover:bg-gray-400">Cancelar</button>
+                <button onclick="verificarSenha()" class="flex-1 bg-acento text-white py-2 rounded hover:bg-red-700">Entrar</button>
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Lista de Lojas -->
-    <section id="lojas" class="py-16 bg-destaque">
-        <div class="container mx-auto px-4">
-            <h2 class="text-2xl font-bold text-center mb-10 text-acento">Nossas Lojas</h2>
-            <div id="lista-lojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Lojas carregadas do Firebase -->
+    <!-- PAINEL ADMINISTRATIVO -->
+    <div id="painelAdmin" class="painel-adm fixed inset-0 bg-white z-50 overflow-y-auto">
+        <div class="container mx-auto px-4 py-8 max-w-4xl">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-acento">⚙️ Painel de Controle - C.G</h2>
+                <button onclick="sairAdmin()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Sair</button>
+            </div>
+
+            <!-- Upload de Arquivos -->
+            <div class="bg-destaque p-6 rounded-lg mb-8">
+                <h3 class="text-xl font-semibold mb-4">📁 Enviar Arquivos da Loja</h3>
+                <div id="dropArea" class="drop-area mb-4">
+                    <p class="text-gray-500">Arraste aqui o index.html e pastas da loja<br>ou clique para selecionar</p>
+                    <input type="file" id="fileInput" multiple webkitdirectory class="hidden">
+                </div>
+                <p id="statusUpload" class="text-sm text-gray-600"></p>
+            </div>
+
+            <!-- Cadastrar Loja -->
+            <div class="bg-destaque p-6 rounded-lg">
+                <h3 class="text-xl font-semibold mb-4">🏪 Cadastrar Nova Loja</h3>
+                <form id="formLoja" class="space-y-4">
+                    <div>
+                        <label class="block mb-1 font-medium">Nome da Loja</label>
+                        <input type="text" id="lojaNome" required class="w-full px-3 py-2 border rounded focus:outline-none focus:border-acento">
+                    </div>
+                    <div>
+                        <label class="block mb-1 font-medium">Categoria</label>
+                        <select id="lojaCategoria" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-acento">
+                            <option>Alimentação</option>
+                            <option>Moda</option>
+                            <option>Produtos Gerais</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-1 font-medium">Link / Pasta (ex: /lojas/nome-loja/)</label>
+                        <input type="text" id="lojaLink" required class="w-full px-3 py-2 border rounded focus:outline-none focus:border-acento">
+                    </div>
+                    <div>
+                        <label class="block mb-1 font-medium">Descrição</label>
+                        <textarea id="lojaDescricao" rows="3" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-acento"></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-acento text-white py-3 rounded-lg font-semibold hover:bg-red-700">
+                        ✅ Salvar Loja
+                    </button>
+                </form>
             </div>
         </div>
-    </section>
+    </div>
 
-    <!-- Rodapé -->
-    <footer class="bg-gray-900 text-white py-10">
-        <div class="container mx-auto px-4 text-center">
-            <div class="logo-cg inline-block mb-4">C.G</div>
-            <p class="text-gray-400">Marketplace Multi-Categoria • Simples e Rápido</p>
-            <p class="text-gray-500 text-sm mt-2">© 2026 C.G - Todos os direitos reservados</p>
-        </div>
-    </footer>
-
-    <!-- Firebase SDK -->
+    <!-- Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // Configuração do seu projeto
         const firebaseConfig = {
           apiKey: "AIzaSyAhI04lOGs4NGC0n9c2NSUqC-puBLVAG4A",
           authDomain: "market-place-33da8.firebaseapp.com",
@@ -125,35 +173,101 @@
           appId: "1:863627503284:web:1ddbe57824fd3d568219e1"
         };
 
-        // Inicializa
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Elementos da tela
+        // --- SEGURANÇA ---
+        const SENHA_CORRETA = "3103";
+        let logado = false;
+
+        // Elementos
+        const logo = document.getElementById('logoAdmin');
+        const modal = document.getElementById('modalSenha');
+        const painel = document.getElementById('painelAdmin');
+        const conteudoPublico = document.getElementById('conteudoPublico');
+
+        // Clique no Logo
+        logo.addEventListener('click', () => {
+            if (!logado) modal.classList.add('ativo');
+        });
+
+        window.fecharModal = () => modal.classList.remove('ativo');
+
+        window.verificarSenha = () => {
+            const senha = document.getElementById('inputSenha').value;
+            if (senha === SENHA_CORRETA) {
+                logado = true;
+                modal.classList.remove('ativo');
+                painel.classList.add('aberto');
+                conteudoPublico.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            } else {
+                alert('❌ Senha incorreta!');
+            }
+        };
+
+        window.sairAdmin = () => {
+            logado = false;
+            painel.classList.remove('aberto');
+            conteudoPublico.style.display = 'block';
+            document.getElementById('inputSenha').value = '';
+            window.scrollTo(0,0);
+        };
+
+        // --- UPLOAD SIMULADO (Arraste) ---
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('statusUpload');
+
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('highlight'); });
+        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('highlight'));
+        dropArea.addEventListener('drop', e => {
+            e.preventDefault(); dropArea.classList.remove('highlight');
+            const files = e.dataTransfer.files;
+            mostrarArquivos(files);
+        });
+        fileInput.addEventListener('change', e => mostrarArquivos(e.target.files));
+
+        function mostrarArquivos(files) {
+            if (!files.length) return;
+            let html = `<strong>📦 ${files.length} arquivos prontos:</strong><ul class="list-disc list-inside mt-2">`;
+            for (let f of files) html += `<li>${f.webkitRelativePath || f.name}</li>`;
+            html += `</ul><p class="text-green-600 mt-2">ℹ️ No Firebase Hosting, você enviará esses arquivos pela pasta raiz do projeto.</p>`;
+            status.innerHTML = html;
+        }
+
+        // --- CADASTRO DE LOJA ---
+        document.getElementById('formLoja').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const dados = {
+                nome: document.getElementById('lojaNome').value,
+                categoria: document.getElementById('lojaCategoria').value,
+                link: document.getElementById('lojaLink').value,
+                descricao: document.getElementById('lojaDescricao').value
+            };
+
+            try {
+                await push(ref(db, 'lojas'), dados);
+                alert('✅ Loja cadastrada com sucesso!');
+                e.target.reset();
+            } catch(err) {
+                alert('❌ Erro: ' + err.message);
+            }
+        });
+
+        // --- CARREGAR LOJAS PÚBLICAS ---
         const listaLojas = document.getElementById('lista-lojas');
         const listaCategorias = document.getElementById('lista-categorias');
         let todasLojas = [];
 
-        // Carregar Lojas
-        const lojasRef = ref(db, 'lojas');
-        onValue(lojasRef, (snap) => {
+        onValue(ref(db, 'lojas'), snap => {
             const dados = snap.val();
             todasLojas = dados ? Object.entries(dados).map(([id, loja]) => ({id, ...loja})) : [];
             mostrarLojas(todasLojas);
+            atualizarCategorias();
         });
 
-        // Carregar Categorias
-        const catRef = ref(db, 'categorias');
-        onValue(catRef, snap => {
-            const cats = snap.val() || [];
-            listaCategorias.innerHTML = cats.map(c => `
-                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer" onclick="filtrarPorCategoria('${c}')">
-                    <h3 class="font-semibold text-acento">${c}</h3>
-                </div>
-            `).join('');
-        });
-
-        // Mostrar lojas na tela
         function mostrarLojas(lista) {
             listaLojas.innerHTML = lista.length ? lista.map(loja => `
                 <div class="card-loja bg-white rounded-lg shadow p-6">
@@ -165,20 +279,25 @@
                         Acessar Loja
                     </a>
                 </div>
-            `).join('') : '<p class="col-span-full text-center">Nenhuma loja encontrada.</p>';
+            `).join('') : '<p class="col-span-full text-center">Nenhuma loja cadastrada.</p>';
         }
 
-        // Busca
+        function atualizarCategorias() {
+            const cats = [...new Set(todasLojas.map(l => l.categoria))];
+            listaCategorias.innerHTML = cats.map(c => `
+                <div class="bg-white p-6 rounded-lg shadow hover:shadow-lg transition cursor-pointer" onclick="filtrarPorCategoria('${c}')">
+                    <h3 class="font-semibold text-acento">${c}</h3>
+                </div>
+            `).join('');
+        }
+
         window.buscarLojas = () => {
             const termo = document.getElementById('busca').value.toLowerCase();
-            const filtradas = todasLojas.filter(l => 
-                l.nome.toLowerCase().includes(termo) || 
-                l.categoria.toLowerCase().includes(termo)
-            );
-            mostrarLojas(filtradas);
+            mostrarLojas(todasLojas.filter(l => 
+                l.nome.toLowerCase().includes(termo) || l.categoria.toLowerCase().includes(termo)
+            ));
         };
 
-        // Filtro por categoria
         window.filtrarPorCategoria = (cat) => {
             mostrarLojas(todasLojas.filter(l => l.categoria === cat));
             document.getElementById('lojas').scrollIntoView({behavior: 'smooth'});
