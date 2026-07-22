@@ -1,0 +1,43 @@
+<!-- ABRIR LOJA E CARRINHO ISOLADO -->
+<script type="module">
+// ... mantenha todo o resto igual, só altere essas funções:
+
+    // ABRIR LOJA
+    window.abrirLoja = id=>{
+        lojaAtual = lojas.find(l=>l.id===id);
+        carrinho = [];
+        document.getElementById('paginaInicial').classList.add('hidden');
+        document.getElementById('paginaLoja').classList.remove('hidden');
+        document.getElementById('carrinho').classList.remove('hidden');
+        document.getElementById('logoLoja').src = lojaAtual.foto;
+        document.getElementById('nomeLojaPagina').textContent = lojaAtual.nome;
+        document.getElementById('nomeLojaCarrinho').textContent = lojaAtual.nome;
+        const prods = lojaAtual.produtos ? Object.entries(lojaAtual.produtos) : [];
+        document.getElementById('listaProdutos').innerHTML = prods.map(([pid,p])=>`
+            <div class="bg-white p-3 rounded-xl shadow-sm">
+                <img src="${p.foto}" class="w-full h-32 object-cover rounded-lg mb-2">
+                <h4 class="font-medium">${p.nome}</h4>
+                <p class="font-bold text-primaria">R$ ${p.preco.toFixed(2)}</p>
+                <button onclick="adicionarItem('${pid}')" class="botao botao-verm w-full mt-2 text-sm">+ Adicionar</button>
+            </div>
+        `).join('');
+        atualizarCarrinho();
+    };
+
+    // ADICIONAR ITEM - CORRIGIDO E GARANTIDO
+    window.adicionarItem = function(id){
+        const p = lojaAtual.produtos[id];
+        if(!p) return;
+        const i = carrinho.find(x=>x.id===id);
+        i ? i.qtd++ : carrinho.push({id:id, nome:p.nome, preco:p.preco, qtd:1});
+        atualizarCarrinho();
+    };
+
+    function atualizarCarrinho(){
+        document.getElementById('itensCarrinho').innerHTML = carrinho.map(i=>`<div class="flex justify-between py-1">${i.qtd}x ${i.nome} <span>R$ ${(i.preco*i.qtd).toFixed(2)}</span></div>`).join('');
+        const total = carrinho.reduce((s,i)=>s+(i.preco*i.qtd),0);
+        document.getElementById('total').textContent = total.toFixed(2);
+    }
+
+// ... o resto do código permanece igual
+</script>

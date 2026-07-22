@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C.G Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primaria: '#E53935',
+                        fundo: '#F8F5F0',
+                        cartao: '#FFFFFF'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #F8F5F0; margin: 0; }
+        .logo { font-weight: 900; font-size: 1.8rem; color: #E53935; cursor: pointer; }
+        .botao { padding: 0.75rem; border-radius: 8px; font-weight: 600; border: none; cursor: pointer; }
+        .botao-verm { background: #E53935; color: white; }
+        .botao-verm:hover { background: #C62828; }
+        .botao-cinz { background: #E0E0E0; color: #333; }
+        .botao-cinz:hover { background: #BDBDBD; }
+        .botao-editar { background: #1976D2; color: white; font-size: 0.85rem; padding: 0.5rem; }
+        .botao-apagar { background: #D32F2F; color: white; font-size: 0.85rem; padding: 0.5rem; }
+        .input { width: 100%; padding: 0.75rem; border: 1px solid #DDD; border-radius: 8px; margin: 0.5rem 0; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; align-items: center; justify-content: center; }
+        .modal.ativo { display: flex; }
+        .painel { display: none; position: fixed; inset: 0; background: #F8F5F0; z-index: 998; overflow-y: auto; padding-bottom: 2rem; }
+        .painel.aberto { display: block; }
+        .carrinho { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #EEE; padding: 1rem; z-index: 50; }
+        @media(min-width:768px){.carrinho{top:0;right:0;left:auto;width:340px;border-left:1px solid #EEE;border-top:none;}}
+        .aviso { padding: 0.75rem; border-radius: 8px; margin: 1rem 0; display: none; }
+        .aviso.sucesso { background: #E8F5E9; color: #2E7D32; display: block; }
+        .aviso.erro { background: #FFEBEE; color: #C62828; display: block; }
+    </style>
+</head>
+<body>
+
+<!-- CABEÇALHO -->
+<header class="bg-white shadow-sm sticky top-0 z-40">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="logo" id="btnAdmin">C.G</div>
+        <input type="text" id="busca" placeholder="Buscar loja..." class="px-3 py-2 rounded border w-64">
+    </div>
+</header>
+
+<!-- PÁGINA INICIAL - LISTA DE LOJAS -->
+<div id="paginaInicial" class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold text-center mb-6 text-primaria">C.G Marketplace</h1>
+    <div id="listaLojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</div>
+
+<!-- PÁGINA DA LOJA - CARDÁPIO -->
+<div id="paginaLoja" class="hidden container mx-auto px-4 py-6 pb-44 md:pr-88">
+    <a href="#" onclick="voltarInicio(); return false;" class="text-primaria font-semibold mb-4 inline-block">← Voltar</a>
+    <div id="cabecalhoLoja" class="flex items-center gap-4 mb-6">
+        <img id="logoLoja" class="w-16 h-16 rounded-full object-cover border-2 border-primaria">
+        <div>
+            <h2 id="nomeLojaPagina" class="text-xl font-bold"></h2>
+        </div>
+    </div>
+    <h3 class="text-lg font-semibold mb-3">Destaques</h3>
+    <div id="listaProdutos" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+</div>
+
+<!-- CARRINHO -->
+<div id="carrinho" class="carrinho hidden">
+    <h4 class="font-bold text-primaria mb-2">🛒 Meu Pedido</h4>
+    <div id="nomeLojaCarrinho" class="text-sm text-gray-600 mb-2"></div>
+    <div id="itensCarrinho" class="max-h-40 overflow-y-auto mb-2"></div>
+    <div class="font-bold mb-2">Total: R$ <span id="total">0,00</span></div>
+    <select id="pagamento" class="input">
+        <option value="Pix">💸 Pix</option>
+        <option value="Cartão">💳 Cartão</option>
+        <option value="Dinheiro">💵 Dinheiro</option>
+    </select>
+    <input type="number" id="troco" placeholder="Troco para quanto?" class="input hidden">
+    <button onclick="enviarPedido()" class="botao botao-verm w-full">✅ Enviar Pedido</button>
+</div>
+
+<!-- TELA DE LOGIN -->
+<div id="telaLogin" class="modal">
+    <div class="bg-white p-6 rounded-xl w-80 shadow-lg">
+        <h3 class="text-xl font-bold mb-4 text-center text-primaria">🔐 Acesso Admin</h3>
+        <input type="email" id="emailAdmin" placeholder="E-mail" class="input">
+        <input type="password" id="senhaAdmin" placeholder="Senha" class="input">
+        <div id="avisoLogin" class="aviso"></div>
+        <div class="flex gap-2 mt-3">
+            <button onclick="fecharLogin()" class="botao botao-cinz flex-1">Cancelar</button>
+            <button onclick="fazerLogin()" class="botao botao-verm flex-1">Entrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- PAINEL ADMIN COMPLETO -->
+<div id="painelAdmin" class="painel">
+    <div class="container mx-auto px-4 py-6 max-w-3xl">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-primaria">⚙️ Painel de Controle</h2>
+            <button onclick="sairAdmin()" class="botao botao-cinz">Sair</button>
+        </div>
+        <div id="avisoGeral" class="aviso"></div>
+
+        <!-- CADASTRAR LOJA -->
+        <div class="bg-white p-5 rounded-lg mb-6 shadow-sm">
+            <h3 class="font-semibold mb-3">🏪 Cadastrar Nova Loja</h3>
+            <form id="formLoja">
+                <input type="text" id="nomeLojaCad" placeholder="Nome da Loja" required class="input">
+                <input type="text" id="wppLojaCad" placeholder="WhatsApp (só números)" required class="input">
+                <input type="file" id="fotoLojaCad" accept="image/*" class="input">
+                <button type="submit" class="botao botao-verm w-full">Salvar Loja</button>
+            </form>
+        </div>
+
+        <!-- GERENCIAR LOJAS -->
+        <div class="bg-white p-5 rounded-lg mb-6 shadow-sm">
+            <h3 class="font-semibold mb-3">📋 Suas Lojas</h3>
+            <div id="listaAdminLojas"></div>
+        </div>
+
+        <!-- CADASTRAR PRODUTO -->
+        <div class="bg-white p-5 rounded-lg mb-6 shadow-sm">
+            <h3 class="font-semibold mb-3">🍔 Cadastrar Produto</h3>
+            <select id="selLojaProd" class="input" required>
+                <option value="">Escolha a Loja</option>
+            </select>
+            <form id="formProduto">
+                <input type="text" id="nomeProdCad" placeholder="Nome do Produto" required class="input">
+                <input type="number" step="0.01" id="precoProdCad" placeholder="Preço R$" required class="input">
+                <input type="file" id="fotoProdCad" accept="image/*" class="input">
+                <button type="submit" class="botao botao-verm w-full">Salvar Produto</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE EDIÇÃO -->
+<div id="modalEditar" class="modal">
+    <div class="bg-white p-6 rounded-xl w-80 shadow-lg">
+        <h3 id="tituloEditar" class="text-xl font-bold mb-4 text-primaria"></h3>
+        <div id="conteudoEditar"></div>
+        <div class="flex gap-2 mt-3">
+            <button onclick="fecharEditar()" class="botao botao-cinz flex-1">Cancelar</button>
+            <button onclick="salvarEdicao()" class="botao botao-verm flex-1">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- INTEGRAÇÃO FIREBASE -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, set, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhI04lOGs4NGC0n9c2NSUqC-puBLVAG4A",
+        authDomain: "market-place-33da8.firebaseapp.com",
+        databaseURL: "https://market-place-33da8-default-rtdb.firebaseio.com",
+        projectId: "market-place-33da8",
+        storageBucket: "market-place-33da8.firebasestorage.app",
+        messagingSenderId: "863627503284",
+        appId: "1:863627503284:web:1ddbe57824fd3d568219e1"
+    };
+    const CHAVE_IMGBB = "8e6694726060a78a9ef5261bf1d67135";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+    let lojas = [], lojaAtual = null, carrinho = [], editarTipo = null, editarId = null, editarIdLoja = null;
+
+    function mostrarAviso(el, texto, tipo='sucesso'){
+        const av = document.getElementById(el);
+        av.className = `aviso ${tipo}`;
+        av.textContent = texto;
+        setTimeout(()=>av.className='aviso', 3000);
+    }
+    async function enviarFoto(arq){
+        const fd = new FormData(); fd.append('image', arq);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${CHAVE_IMGBB}`,{method:'POST',body:fd});
+        return (await res.json()).data.url;
+    }
+
+    // NAVEGAÇÃO
+    document.getElementById('btnAdmin').onclick = ()=>document.getElementById('telaLogin').classList.add('ativo');
+    window.fecharLogin = ()=>document.getElementById('telaLogin').classList.remove('ativo');
+    window.voltarInicio = ()=>{
+        document.getElementById('paginaInicial').classList.remove('hidden');
+        document.getElementById('paginaLoja').classList.add('hidden');
+        document.getElementById('carrinho').classList.add('hidden');
+        carrinho = [];
+    };
+    window.sairAdmin = ()=>{
+        signOut(auth).then(()=>{
+            document.getElementById('painelAdmin').classList.remove('aberto');
+            document.getElementById('paginaInicial').classList.remove('hidden');
+        });
+    };
+
+    // LOGIN
+    window.fazerLogin = async ()=>{
+        try{
+            await signInWithEmailAndPassword(auth, document.getElementById('emailAdmin').value, document.getElementById('senhaAdmin').value);
+            fecharLogin();
+            document.getElementById('paginaInicial').classList.add('hidden');
+            document.getElementById('painelAdmin').classList.add('aberto');
+            mostrarAviso('avisoGeral','✅ Acesso liberado!');
+        }catch(e){ mostrarAviso('avisoLogin','Erro: '+e.message,'erro'); }
+    };
+
+    // CARREGAR DADOS
+    onValue(ref(db,'lojas'), snap=>{
+        lojas = snap.val() ? Object.entries(snap.val()).map(([id,d])=>({id,...d})) : [];
+        atualizarListaLojas();
+        atualizarSelectLojas();
+        atualizarAdminLojas();
+    });
+
+    function atualizarListaLojas(filtro=''){
+        const lista = filtro ? lojas.filter(l=>l.nome.toLowerCase().includes(filtro.toLowerCase())) : lojas;
+        document.getElementById('listaLojas').innerHTML = lista.map(l=>`
+            <div onclick="abrirLoja('${l.id}')" class="bg-white p-4 rounded-xl shadow-sm cursor-pointer hover:shadow-md transition">
+                <div class="flex items-center gap-3">
+                    <img src="${l.foto}" class="w-14 h-14 rounded-full object-cover border border-gray-200">
+                    <div>
+                        <h3 class="font-bold">${l.nome}</h3>
+                        <p class="text-sm text-gray-600">${l.produtos?Object.keys(l.produtos).length:0} produtos</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    document.getElementById('busca').oninput = e=>atualizarListaLojas(e.target.value);
+
+    function atualizarSelectLojas(){
+        document.getElementById('selLojaProd').innerHTML = `<option value="">Escolha a Loja</option>`+lojas.map(l=>`<option value="${l.id}">${l.nome}</option>`).join('');
+    }
+
+    function atualizarAdminLojas(){
+        document.getElementById('listaAdminLojas').innerHTML = lojas.map(l=>`
+            <div class="flex items-center justify-between p-3 border-b">
+                <div class="flex items-center gap-3">
+                    <img src="${l.foto}" class="w-10 h-10 rounded-full object-cover">
+                    <span class="font-medium">${l.nome}</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="editarLoja('${l.id}')" class="botao botao-editar">Editar</button>
+                    <button onclick="apagarLoja('${l.id}')" class="botao botao-apagar">Apagar</button>
+                </div>
+            </div>
+            <div class="pl-12 mb-3">
+                ${l.produtos ? Object.entries(l.produtos).map(([pid,p])=>`
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-sm">${p.nome} - R$ ${p.preco.toFixed(2)}</span>
+                        <div class="flex gap-1">
+                            <button onclick="editarProduto('${l.id}','${pid}')" class="botao botao-editar text-xs py-1 px-2">Editar</button>
+                            <button onclick="apagarProduto('${l.id}','${pid}')" class="botao botao-apagar text-xs py-1 px-2">Apagar</button>
+                        </div>
+                    </div>
+                `).join('') : '<p class="text-sm text-gray-500">Sem produtos ainda</p>'}
+            </div>
+        `).join('');
+    }
+
+    // ABRIR LOJA
+    window.abrirLoja = id=>{
+        lojaAtual = lojas.find(l=>l.id===id);
+        carrinho = [];
+        document.getElementById('paginaInicial').classList.add('hidden');
+        document.getElementById('paginaLoja').classList.remove('hidden');
+        document.getElementById('carrinho').classList.remove('hidden');
+        document.getElementById('logoLoja').src = lojaAtual.foto;
+        document.getElementById('nomeLojaPagina').textContent = lojaAtual.nome;
+        document.getElementById('nomeLojaCarrinho').textContent = lojaAtual.nome;
+        const prods = lojaAtual.produtos ? Object.entries(lojaAtual.produtos) : [];
+        document.getElementById('listaProdutos').innerHTML = prods.map(([pid,p])=>`
+            <div class="bg-white p-3 rounded-xl shadow-sm">
+                <img src="${p.foto}" class="w-full h-32 object-cover rounded-lg mb-2">
+                <h4 class="font-medium">${p.nome}</h4>
+                <p class="font-bold text-primaria">R$ ${p.preco.toFixed(2)}</p>
+                <button onclick="adicionarItem('${pid}')" class="botao botao-verm w-full mt-2 text-sm">+ Adicionar</button>
+            </div>
+        `).join('');
+        atualizarCarrinho();
+    };
+
+    // CARRINHO
+    function adicionarItem(id){
+        const p = lojaAtual.produtos[id];
+        const i = carrinho.find(x=>x.id===id);
+        i ? i.qtd++ : carrinho.push({id,...p,qtd:1});
+        atualizarCarrinho();
+    }
+    function atualizarCarrinho(){
+        document.getElementById('itensCarrinho').innerHTML = carrinho.map(i=>`<div class="flex justify-between">${i.qtd}x ${i.nome} <span>R$ ${(i.preco*i.qtd).toFixed(2)}</span></div>`).join('');
+        document.getElementById('total').textContent = carrinho.reduce((s,i)=>s+(i.preco*i.qtd),0).toFixed(2);
+    }
+    document.getElementById('pagamento').onchange = e=>document.getElementById('troco').classList.toggle('hidden',e.target.value!=='Dinheiro');
+    window.enviarPedido = ()=>{
+        if(!carrinho.length) return alert('Adicione itens!');
+        let msg = `*PEDIDO - ${lojaAtual.nome}*\n\n`;
+        carrinho.forEach(i=>msg += `${i.qtd}x ${i.nome} - R$ ${(i.preco*i.qtd).toFixed(2)}\n`);
+        msg += `\nTotal: R$ ${carrinho.reduce((s,i)=>s+(i.preco*i.qtd),0).toFixed(2)}`;
+        msg += `\nPagamento: ${document.getElementById('pagamento').value}`;
+        if(document.getElementById('pagamento').value==='Dinheiro' && document.getElementById('troco').value) msg += `\nTroco para: R$ ${document.getElementById('troco').value}`;
+        window.open(`https://wa.me/55${lojaAtual.wpp}?text=${encodeURIComponent(msg)}`);
+    };
+
+    // CADASTRAR
+    document.getElementById('formLoja').onsubmit = async e=>{
+        e.preventDefault();
+        const foto = await enviarFoto(document.getElementById('fotoLojaCad').files[0]);
+        await push(ref(db,'lojas'),{
+            nome:document.getElementById('nomeLojaCad').value,
+            wpp:document.getElementById('wppLojaCad').value.replace(/\D/g,''),
+            foto:foto, produtos:{}
+        });
+        mostrarAviso('avisoGeral','✅ Loja cadastrada!'); e.target.reset();
+    };
+    document.getElementById('formProduto').onsubmit = async e=>{
+        e.preventDefault();
+        const idLoja = document.getElementById('selLojaProd').value;
+        const foto = await enviarFoto(document.getElementById('fotoProdCad').files[0]);
+        await push(ref(db,`lojas/${idLoja}/produtos`),{
+            nome:document.getElementById('nomeProdCad').value,
+            preco:parseFloat(document.getElementById('precoProdCad').value),
+            foto:foto
+        });
+        mostrarAviso('avisoGeral','✅ Produto cadastrado!'); e.target.reset();
+    };
+
+    // EDIÇÃO E EXCLUSÃO
+    window.editarLoja = id=>{
+        const l = lojas.find(x=>x.id===id);
+        editarTipo = 'loja'; editarId = id;
+        document.getElementById('tituloEditar').textContent = 'Editar Loja';
+        document.getElementById('conteudoEditar').innerHTML = `
+            <input type="text" id="edtNome" value="${l.nome}" class="input">
+            <input type="text" id="edtWpp" value="${l.wpp}" class="input">
+            <input type="file" id="edtFoto" accept="image/*" class="input">
+        `;
+        document.getElementById('modalEditar').classList.add('ativo');
+    };
+    window.apagarLoja = id=>{
+        if(confirm('Apagar essa loja e todos os produtos?')) remove(ref(db,`lojas/${id}`));
+    };
+    window.editarProduto = (idLoja,idProd)=>{
+        const p = lojas.find(l=>l.id===idLoja).produtos[idProd];
+        editarTipo = 'produto'; editarIdLoja = idLoja; editarId = idProd;
+        document.getElementById('tituloEditar').textContent = 'Editar Produto';
+        document.getElementById('conteudoEditar').innerHTML = `
+            <input type="text" id="edtNome" value="${p.nome}" class="input">
+            <input type="number" step="0.01" id="edtPreco" value="${p.preco}" class="input">
+            <input type="file" id="edtFoto" accept="image/*" class="input">
+        `;
+        document.getElementById('modalEditar').classList.add('ativo');
+    };
+    window.apagarProduto = (idLoja,idProd)=>{
+        if(confirm('Apagar esse produto?')) remove(ref(db,`lojas/${idLoja}/produtos/${idProd}`));
+    };
+    window.fecharEditar = ()=>document.getElementById('modalEditar').classList.remove('ativo');
+    window.salvarEdicao = async ()=>{
+        let dados = {};
+        if(document.getElementById('edtNome')) dados.nome = document.getElementById('edtNome').value;
+        if(document.getElementById('edtWpp')) dados.wpp = document.getElementById('edtWpp').value.replace(/\D/g,'');
+        if(document.getElementById('edtPreco')) dados.preco = parseFloat(document.getElementById('edtPreco').value);
+        const arq = document.getElementById('edtFoto')?.files[0];
+        if(arq) dados.foto = await enviarFoto(arq);
+
+        if(editarTipo==='loja') await set(ref(db,`lojas/${editarId}`),dados);
+        if(editarTipo==='produto') await set(ref(db,`lojas/${editarIdLoja}/produtos/${editarId}`),dados);
+        fecharEditar(); mostrarAviso('avisoGeral','✅ Alterado com sucesso!');
+    };
+</script>
+</body>
+</html>
