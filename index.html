@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teste de Upload — Navalha</title>
+<style>
+  body{
+    font-family: sans-serif;
+    padding: 20px;
+    max-width: 480px;
+    margin: 0 auto;
+    background:#f4f1ea;
+  }
+  h1{ font-size: 20px; }
+  .box{
+    background:#fff; border:1px solid #ddd; border-radius:12px;
+    padding:16px; margin-bottom:16px;
+  }
+  input[type=file]{ margin-bottom:10px; display:block; }
+  button{
+    background:#B8862B; color:#fff; border:none; padding:12px 18px;
+    border-radius:8px; font-weight:bold; font-size:14px; width:100%;
+  }
+  button:disabled{ opacity:0.5; }
+  #resultado{
+    margin-top:14px; padding:10px; border-radius:8px; font-size:13px;
+    white-space:pre-wrap; word-break:break-all;
+  }
+  .ok{ background:#e4ede7; color:#2f5a41; }
+  .erro{ background:#fbe4e4; color:#8a2f2f; }
+  img#preview{ max-width:100%; border-radius:8px; margin-top:10px; display:none; }
+</style>
+</head>
+<body>
+
+<h1>🔧 Teste do Worker — navalha-upload</h1>
+
+<div class="box">
+  <strong>1. Upload de foto</strong><br><br>
+  <input type="file" id="arquivo" accept="image/*">
+  <button id="btnUpload">Enviar foto de teste</button>
+  <div id="resultado"></div>
+  <img id="preview">
+</div>
+
+<div class="box">
+  <strong>2. Apagar a foto de teste</strong><br><br>
+  <button id="btnDelete" disabled>Apagar foto enviada</button>
+  <div id="resultadoDelete"></div>
+</div>
+
+<script>
+  // TROQUE aqui pela URL real do seu Worker, sem barra no final
+  const WORKER_URL = "https://navalha-upload.linoariane114.workers.dev";
+
+  let ultimaKey = null;
+
+  document.getElementById("btnUpload").addEventListener("click", async () => {
+    const input = document.getElementById("arquivo");
+    const resultado = document.getElementById("resultado");
+    const preview = document.getElementById("preview");
+    const btnDelete = document.getElementById("btnDelete");
+
+    if (!input.files[0]) {
+      resultado.className = "erro";
+      resultado.textContent = "Escolhe uma foto primeiro.";
+      return;
+    }
+
+    const file = input.files[0];
+    const key = "navalha/teste/" + Date.now() + "-" + file.name;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("key", key);
+
+    resultado.className = "";
+    resultado.textContent = "Enviando...";
+
+    try {
+      const resp = await fetch(WORKER_URL + "/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await resp.json();
+
+      if (resp.ok && data.ok) {
+        resultado.className = "ok";
+        resultado.textContent = "✅ Upload OK!\nURL: " + data.url + "\nKey: " + data.key;
+        preview.src = data.url;
+        preview.style.display = "block";
+        ultimaKey = data.key;
+        btnDelete.disabled = false;
+      } else {
+        resultado.className = "erro";
+        resultado.textContent = "❌ Erro: " + JSON.stringify(data);
+      }
+    } catch (err) {
+      resultado.className = "erro";
+      resultado.textContent = "❌ Erro de conexão: " + err.message;
+    }
+  });
+
+  document.getElementById("btnDelete").addEventListener("click", async () => {
+    const resultadoDelete = document.getElementById("resultadoDelete");
+    if (!ultimaKey) return;
+
+    resultadoDelete.textContent = "Apagando...";
+
+    try {
+      const resp = await fetch(WORKER_URL + "/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: ultimaKey }),
+      });
+      const data = await resp.json();
+
+      if (resp.ok && data.ok) {
+        resultadoDelete.className = "ok";
+        resultadoDelete.textContent = "✅ Foto apagada do bucket.";
+        document.getElementById("preview").style.display = "none";
+        document.getElementById("btnDelete").disabled = true;
+      } else {
+        resultadoDelete.className = "erro";
+        resultadoDelete.textContent = "❌ Erro: " + JSON.stringify(data);
+      }
+    } catch (err) {
+      resultadoDelete.className = "erro";
+      resultadoDelete.textContent = "❌ Erro de conexão: " + err.message;
+    }
+  });
+</script>
+
+</body>
+</html>
