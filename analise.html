@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>Análise do Jogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0f14;
+  --surface: #12181f;
+  --surface2: #1a222d;
+  --line: #2a3441;
+  --text: #f2f4f7;
+  --muted: #8b97a8;
+  --accent: #f0c14b;
+  --live: #e74c3c;
+  --green: #2ecc71;
+  --blue: #5b8def;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; }
+body { max-width: 640px; margin: 0 auto; min-height: 100dvh; }
+
+.topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+  background: var(--surface); position: sticky; top: 0; z-index: 10;
+}
+.topbar a { color: var(--muted); text-decoration: none; font-size: 14px; }
+.topbar .liga {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--muted);
+}
+.topbar .liga img { width: 18px; height: 18px; object-fit: contain; }
+.topbar .liga span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.placar {
+  padding: 20px 16px 16px; text-align: center;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+}
+.placar-times {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;
+}
+.time-box { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.time-box img { width: 52px; height: 52px; object-fit: contain; }
+.time-box .nome { font-size: 13px; font-weight: 600; line-height: 1.2; max-width: 110px; }
+.vs {
+  font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600;
+  min-width: 72px;
+}
+.vs .score { letter-spacing: 1px; }
+.meta { margin-top: 10px; font-size: 12px; color: var(--muted); }
+.meta .ao-vivo { color: var(--live); font-weight: 600; }
+
+.abas {
+  display: flex; gap: 0; overflow-x: auto; border-bottom: 1px solid var(--line);
+  background: var(--surface); position: sticky; top: 49px; z-index: 9;
+  -webkit-overflow-scrolling: touch;
+}
+.aba-btn {
+  flex: 1; min-width: 72px; background: none; border: none; color: var(--muted);
+  padding: 12px 8px; font-family: inherit; font-size: 13px; font-weight: 500;
+  border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
+}
+.aba-btn.ativa { color: var(--accent); border-bottom-color: var(--accent); }
+
+.conteudo { padding: 14px; }
+.aba-conteudo { display: none; }
+.aba-conteudo.ativa { display: block; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px; margin-bottom: 12px;
+}
+.card-titulo {
+  font-size: 11px; letter-spacing: .06em; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 10px; font-weight: 600;
+}
+.advice {
+  font-size: 15px; font-weight: 600; margin-bottom: 12px; line-height: 1.35;
+}
+.barra-row {
+  display: grid; grid-template-columns: 70px 1fr 40px; gap: 8px;
+  align-items: center; margin-bottom: 8px; font-size: 13px;
+}
+.barra-track {
+  height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden;
+}
+.barra-fill { height: 100%; background: var(--accent); border-radius: 99px; }
+.linha {
+  display: flex; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.linha:last-child { border-bottom: none; }
+.linha .val { font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
+
+.stat-row {
+  display: grid; grid-template-columns: 48px 1fr 48px; gap: 8px;
+  align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-row .l, .stat-row .r {
+  font-family: 'IBM Plex Mono', monospace; font-weight: 600; text-align: center;
+}
+.stat-row .c { text-align: center; color: var(--muted); font-size: 12px; }
+
+.eventos { display: flex; flex-direction: column; gap: 0; }
+.evento {
+  display: grid; grid-template-columns: 36px 1fr; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.evento:last-child { border-bottom: none; }
+.evento .min {
+  font-family: 'IBM Plex Mono', monospace; color: var(--accent); font-weight: 600;
+  font-size: 12px; padding-top: 2px;
+}
+.evento .desc { line-height: 1.35; }
+.evento .tipo { color: var(--muted); font-size: 11px; }
+
+.mins-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 8px;
+}
+.min-cell {
+  background: var(--surface2); border-radius: 8px; padding: 8px 4px; text-align: center;
+}
+.min-cell .faixa { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.min-cell .pct { font-size: 12px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+
+.h2h-item {
+  padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.h2h-item:last-child { border-bottom: none; }
+.h2h-data { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.h2h-row {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
+}
+.h2h-row img { width: 18px; height: 18px; vertical-align: middle; margin-right: 4px; }
+.h2h-placar { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+
+.tabela { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tabela th {
+  text-align: left; color: var(--muted); font-weight: 500;
+  padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 10px;
+}
+.tabela td { padding: 8px 4px; border-bottom: 1px solid var(--line); }
+.tabela .time-cell { display: flex; align-items: center; gap: 6px; }
+.tabela .time-cell img { width: 16px; height: 16px; object-fit: contain; }
+.tabela .pos { color: var(--muted); width: 20px; }
+
+.vazio {
+  padding: 24px 14px; text-align: center; color: var(--muted); font-size: 13px;
+  background: var(--surface); border-radius: 12px; border: 1px solid var(--line);
+}
+.status-msg { padding: 40px 16px; text-align: center; color: var(--muted); }
+
+.lineup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lineup-side h4 { margin: 0 0 8px; font-size: 13px; }
+.jogador {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 0; font-size: 12px; border-bottom: 1px solid var(--line);
+}
+.jogador .num {
+  width: 20px; color: var(--accent); font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="home.html" id="voltar">← Voltar</a>
+  <div class="liga" id="ligaInfo">—</div>
+</div>
+
+<div class="placar" id="placar">
+  <div class="status-msg">Carregando análise...</div>
+</div>
+
+<div class="abas" id="abas" style="display:none">
+  <button class="aba-btn ativa" data-aba="resumo">Resumo</button>
+  <button class="aba-btn" data-aba="eventos">Eventos</button>
+  <button class="aba-btn" data-aba="estatistica">Stats</button>
+  <button class="aba-btn" data-aba="tabela">Tabela</button>
+  <button class="aba-btn" data-aba="h2h">H2H</button>
+  <button class="aba-btn" data-aba="escalacao">Escalação</button>
+</div>
+
+<div class="conteudo" id="conteudo" style="display:none">
+  <div class="aba-conteudo ativa" id="aba-resumo"></div>
+  <div class="aba-conteudo" id="aba-eventos"></div>
+  <div class="aba-conteudo" id="aba-estatistica"></div>
+  <div class="aba-conteudo" id="aba-tabela"></div>
+  <div class="aba-conteudo" id="aba-h2h"></div>
+  <div class="aba-conteudo" id="aba-escalacao"></div>
+</div>
+
+<script>
+const WORKER_URL = "https://cg-la-casa-das-bets.linoariane114.workers.dev";
+
+const STAT_PT = {
+  "Ball Possession": "Posse de bola",
+  "Total Shots": "Finalizações",
+  "Shots on Goal": "Chutes no gol",
+  "Shots off Goal": "Chutes pra fora",
+  "Blocked Shots": "Chutes bloqueados",
+  "Shots insidebox": "Chutes na área",
+  "Shots outsidebox": "Chutes fora da área",
+  "Corner Kicks": "Escanteios",
+  "Offsides": "Impedimentos",
+  "Fouls": "Faltas",
+  "Yellow Cards": "Cartões amarelos",
+  "Red Cards": "Cartões vermelhos",
+  "Goalkeeper Saves": "Defesas do goleiro",
+  "Total passes": "Passes totais",
+  "Passes accurate": "Passes certos",
+  "Passes %": "Precisão de passe",
+  "expected_goals": "xG",
+  "goals_prevented": "Gols evitados"
+};
+
+const params = new URLSearchParams(location.search);
+const fixtureId = params.get("fixture");
+const dateParam = params.get("date") || "";
+
+if (dateParam) {
+  document.getElementById("voltar").href = "home.html?date=" + dateParam;
+}
+
+document.querySelectorAll(".aba-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".aba-btn").forEach(b => b.classList.remove("ativa"));
+    document.querySelectorAll(".aba-conteudo").forEach(c => c.classList.remove("ativa"));
+    btn.classList.add("ativa");
+    document.getElementById("aba-" + btn.dataset.aba).classList.add("ativa");
+  };
+});
+
+async function carregar() {
+  if (!fixtureId) {
+    document.getElementById("placar").innerHTML = '<div class="status-msg">Faltou o ID do jogo na URL.</div>';
+    return;
+  }
+  try {
+    let url = WORKER_URL + "/analise?fixture=" + fixtureId;
+    if (dateParam) url += "&date=" + dateParam;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.error) {
+      document.getElementById("placar").innerHTML = '<div class="status-msg">Erro: ' + esc(data.error) + '</div>';
+      return;
+    }
+    montarPlacar(data);
+    montarResumo(data);
+    montarEventos(data);
+    montarEstatistica(data);
+    montarTabela(data);
+    montarH2H(data);
+    montarEscalacao(data);
+    document.getElementById("abas").style.display = "flex";
+    document.getElementById("conteudo").style.display = "block";
+  } catch (err) {
+    document.getElementById("placar").innerHTML = '<div class="status-msg">Erro de conexão: ' + esc(String(err)) + '</div>';
+  }
+}
+
+function montarPlacar(data) {
+  const f = data.fixture;
+  const home = f.teams.home;
+  const away = f.teams.away;
+  const status = f.fixture.status.short;
+  const elapsed = f.fixture.status.elapsed;
+  const aoVivo = !["NS","FT","AET","PEN","PST","CANC","ABD","AWD","WO"].includes(status);
+  const golsH = f.goals.home;
+  const golsA = f.goals.away;
+
+  let statusTxt;
+  if (aoVivo) statusTxt = '<span class="ao-vivo">AO VIVO — ' + (elapsed || "?") + "'</span>";
+  else if (status === "FT" || status === "AET" || status === "PEN") statusTxt = "ENCERRADO";
+  else statusTxt = formatarDataHora(f.fixture.date);
+
+  const ligaLogo = f.league.logo ? '<img src="' + f.league.logo + '" alt="">' : "";
+  document.getElementById("ligaInfo").innerHTML = ligaLogo + '<span>' + esc(f.league.name) + (f.league.country ? " — " + esc(f.league.country) : "") + '</span>';
+
+  document.getElementById("placar").innerHTML = `
+    <div class="placar-times">
+      <div class="time-box">
+        <img src="${home.logo || ""}" alt="" onerror="this.style.display='none'">
+        <div class="nome">${esc(home.name)}</div>
+      </div>
+      <div class="vs">
+        <div class="score">${golsH == null ? "VS" : golsH + " : " + golsA}</div>
+      </div>
+      <div class="time-box">
+        <img src="${away.logo || ""}" alt="" onerror="this.style.display='none'">
+        <div class="nome">${esc(away.name)}</div>
+      </div>
+    </div>
+    <div class="meta">${statusTxt}</div>
+  `;
+}
+
+function montarResumo(data) {
+  const el = document.getElementById("aba-resumo");
+  const pred = data.predictions;
+  let html = "";
+
+  if (pred && pred.predictions) {
+    const p = pred.predictions;
+    const percent = p.percent || {};
+    html += `<div class="card">
+      <div class="card-titulo">Palpite da API</div>
+      <div class="advice">${esc(p.advice || "—")}</div>
+      ${barra("Casa", percent.home)}
+      ${barra("Empate", percent.draw)}
+      ${barra("Fora", percent.away)}
+    </div>`;
+
+    const underOver = p.under_over;
+    const goals = p.goals || {};
+    html += `<div class="card">
+      <div class="card-titulo">Mercado de gols (API)</div>
+      <div class="linha"><span>Sugestão over/under</span><span class="val">${esc(underOver || "—")}</span></div>
+      <div class="linha"><span>Linha gols casa</span><span class="val">${esc(goals.home || "—")}</span></div>
+      <div class="linha"><span>Linha gols fora</span><span class="val">${esc(goals.away || "—")}</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Valores negativos = linha de under (ex: -2.5 = under 2.5). Não é xG.</div>
+    </div>`;
+  } else {
+    html += `<div class="vazio">Palpite ainda não disponível para este jogo.</div>`;
+  }
+
+  // forma recente do predictions
+  if (pred && pred.comparison) {
+    const c = pred.comparison;
+    html += `<div class="card"><div class="card-titulo">Comparativo</div>`;
+    ["form","att","def","poisson_distribution","h2h","goals","total"].forEach(k => {
+      if (c[k]) {
+        html += `<div class="linha"><span>${esc(k)}</span><span class="val">${esc(c[k].home || "")} / ${esc(c[k].away || "")}</span></div>`;
+      }
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function barra(label, pctStr) {
+  const n = parseInt(String(pctStr || "0").replace("%",""), 10) || 0;
+  return `<div class="barra-row">
+    <span>${label}</span>
+    <div class="barra-track"><div class="barra-fill" style="width:${n}%"></div></div>
+    <span>${n}%</span>
+  </div>`;
+}
+
+function montarEventos(data) {
+  const el = document.getElementById("aba-eventos");
+  const events = (data.fixture && data.fixture.events) || [];
+  if (!events.length) {
+    el.innerHTML = `<div class="vazio">Nenhum evento ainda (gols, cartões, substituições).</div>`;
+    return;
+  }
+  let html = `<div class="card"><div class="card-titulo">Linha do tempo</div><div class="eventos">`;
+  events.forEach(ev => {
+    const min = (ev.time && ev.time.elapsed != null) ? ev.time.elapsed + "'" : "—";
+    const extra = (ev.time && ev.time.extra) ? "+" + ev.time.extra : "";
+    const player = (ev.player && ev.player.name) || "";
+    const assist = (ev.assist && ev.assist.name) ? " ← " + ev.assist.name : "";
+    const team = (ev.team && ev.team.name) || "";
+    const tipo = [ev.type, ev.detail].filter(Boolean).join(" · ");
+    html += `<div class="evento">
+      <div class="min">${min}${extra}</div>
+      <div class="desc">
+        <div><strong>${esc(player)}</strong>${esc(assist)}</div>
+        <div class="tipo">${esc(tipo)}${team ? " — " + esc(team) : ""}</div>
+      </div>
+    </div>`;
+  });
+  html += `</div></div>`;
+  el.innerHTML = html;
+}
+
+function montarEstatistica(data) {
+  const el = document.getElementById("aba-estatistica");
+  const stats = data.fixture && data.fixture.statistics;
+  let html = "";
+
+  if (stats && stats.length >= 2) {
+    const a = stats[0];
+    const b = stats[1];
+    html += `<div class="card"><div class="card-titulo">Neste jogo</div>`;
+    const items = a.statistics || [];
+    items.forEach((item, i) => {
+      const nome = STAT_PT[item.type] || item.type;
+      const va = item.value != null ? item.value : "—";
+      const vb = (b.statistics && b.statistics[i] && b.statistics[i].value != null) ? b.statistics[i].value : "—";
+      html += `<div class="stat-row"><div class="l">${va}</div><div class="c">${esc(nome)}</div><div class="r">${vb}</div></div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="vazio">Estatística deste jogo ainda não disponível (jogo não começou ou sem cobertura).</div>`;
+  }
+
+  // minutos de gol da temporada via predictions
+  const pred = data.predictions;
+  if (pred && pred.teams) {
+    ["home","away"].forEach(side => {
+      const t = pred.teams[side];
+      if (!t) return;
+      const nome = t.name || side;
+      const forGoals = (t.league && t.league.goals && t.league.goals.for && t.league.goals.for.minute) || null;
+      const againstGoals = (t.league && t.league.goals && t.league.goals.against && t.league.goals.against.minute) || null;
+      if (forGoals) {
+        html += `<div class="card"><div class="card-titulo">${esc(nome)} — gols feitos por minuto (temporada)</div>${minsGrid(forGoals)}</div>`;
+      }
+      if (againstGoals) {
+        html += `<div class="card"><div class="card-titulo">Gols sofridos por minuto</div>${minsGrid(againstGoals)}</div>`;
+      }
+    });
+  }
+
+  el.innerHTML = html;
+}
+
+function minsGrid(minuteObj) {
+  const faixas = ["0-15","16-30","31-45","46-60","61-75","76-90"];
+  let h = '<div class="mins-grid">';
+  faixas.forEach(f => {
+    const v = minuteObj[f];
+    const pct = v && v.percentage != null ? v.percentage : (v && v.total != null ? v.total : "—");
+    h += `<div class="min-cell"><div class="faixa">${f}</div><div class="pct">${pct}${String(pct).includes("%")?"":(pct!=="—"?"%":"")}</div></div>`;
+  });
+  h += "</div>";
+  return h;
+}
+
+function montarTabela(data) {
+  const el = document.getElementById("aba-tabela");
+  const standings = data.standings;
+  if (!standings || !standings.length) {
+    el.innerHTML = `<div class="vazio">Tabela não disponível para esta competição.</div>`;
+    return;
+  }
+  const grupos = Array.isArray(standings[0]) ? standings : [standings];
+  let html = "";
+  grupos.forEach((grupo, gi) => {
+    html += `<div class="card"><div class="card-titulo">Classificação${grupos.length>1?" · Grupo "+(gi+1):""}</div>
+      <table class="tabela"><thead><tr>
+        <th>#</th><th>Time</th><th>J</th><th>Pts</th><th>SG</th>
+      </tr></thead><tbody>`;
+    grupo.forEach(row => {
+      html += `<tr>
+        <td class="pos">${row.rank}</td>
+        <td><div class="time-cell">
+          ${row.team && row.team.logo ? '<img src="'+row.team.logo+'" alt="">' : ''}
+          <span>${esc(row.team ? row.team.name : "")}</span>
+        </div></td>
+        <td>${row.all ? row.all.played : "—"}</td>
+        <td><strong>${row.points}</strong></td>
+        <td>${row.goalsDiff != null ? row.goalsDiff : "—"}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  });
+  el.innerHTML = html;
+}
+
+function montarH2H(data) {
+  const el = document.getElementById("aba-h2h");
+  const h2h = data.h2h || [];
+  if (!h2h.length) {
+    el.innerHTML = `<div class="vazio">Sem confrontos anteriores registrados.</div>`;
+    return;
+  }
+  let html = `<div class="card"><div class="card-titulo">Últimos confrontos</div>`;
+  h2h.slice(0, 12).forEach(j => {
+    const d = j.fixture && j.fixture.date ? new Date(j.fixture.date).toLocaleDateString("pt-BR") : "";
+    const liga = j.league ? j.league.name : "";
+    html += `<div class="h2h-item">
+      <div class="h2h-data">${esc(d)} · ${esc(liga)}</div>
+      <div class="h2h-row">
+        <div style="text-align:right">
+          ${j.teams.home.logo ? '<img src="'+j.teams.home.logo+'" alt="">' : ''}
+          ${esc(j.teams.home.name)}
+        </div>
+        <div class="h2h-placar">${j.goals.home} - ${j.goals.away}</div>
+        <div>
+          ${j.teams.away.logo ? '<img src="'+j.teams.away.logo+'" alt="">' : ''}
+          ${esc(j.teams.away.name)}
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function montarEscalacao(data) {
+  const el = document.getElementById("aba-escalacao");
+  const lineups = (data.fixture && data.fixture.lineups) || [];
+  if (!lineups.length) {
+    el.innerHTML = `<div class="vazio">Escalação ainda não disponível (geralmente sai 30–60 min antes do jogo).</div>`;
+    return;
+  }
+  let html = `<div class="lineup-grid">`;
+  lineups.forEach(side => {
+    const form = side.formation || "";
+    const coach = side.coach && side.coach.name ? side.coach.name : "";
+    html += `<div class="card">
+      <h4>${esc(side.team ? side.team.name : "")} ${form ? "· "+esc(form) : ""}</h4>
+      ${coach ? '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Técnico: '+esc(coach)+'</div>' : ''}
+      <div class="card-titulo">Titulares</div>`;
+    (side.startXI || []).forEach(p => {
+      const pl = p.player || {};
+      html += `<div class="jogador"><span class="num">${pl.number || ""}</span><span>${esc(pl.name || "")}</span></div>`;
+    });
+    if (side.substitutes && side.substitutes.length) {
+      html += `<div class="card-titulo" style="margin-top:10px">Reservas</div>`;
+      side.substitutes.forEach(p => {
+        const pl = p.player || {};
+        html += `<div class="jogador"><span class="num">${pl.number || ""}</span><span>${esc(pl.name || "")}</span></div>`;
+      });
+    }
+    html += `</div>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function formatarDataHora(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+carregar();
+</script>
+</body>
+</html>
