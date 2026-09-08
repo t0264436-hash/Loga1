@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análise do Jogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14171A;
+    --surface: #1B1F23;
+    --surface-2: #21262B;
+    --line: #2A2F34;
+    --text: #E8E6E0;
+    --text-muted: #8B9198;
+    --accent: #C9A227;
+    --live: #B85450;
+    --positivo: #4C9A6A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 24px;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  a { color: inherit; }
+
+  header {
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    z-index: 10;
+  }
+  .topo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px 8px;
+  }
+  .voltar {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .topo-liga {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .placar-box {
+    text-align: center;
+    padding: 12px 16px 16px;
+  }
+  .placar-times {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .placar-numero {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 24px;
+    min-width: 70px;
+  }
+  .placar-status {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .placar-status.ao-vivo { color: var(--live); }
+
+  .abas {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+  }
+  .aba-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    padding: 12px 4px;
+    border-bottom: 2px solid transparent;
+  }
+  .aba-btn.ativa {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  .aba-conteudo { display: none; padding: 16px; }
+  .aba-conteudo.ativa { display: block; }
+
+  .bloco {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .bloco-titulo {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+
+  .palpite-texto {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .barra-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .barra-label { min-width: 60px; color: var(--text-muted); }
+  .barra-fundo {
+    flex: 1;
+    background: var(--surface-2);
+    border-radius: 3px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .barra-preenchida { height: 100%; background: var(--accent); }
+  .barra-valor { min-width: 34px; text-align: right; font-family: 'IBM Plex Mono', monospace; }
+
+  .stat-linha {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .stat-linha:last-child { border-bottom: none; }
+  .stat-valor { font-family: 'IBM Plex Mono', monospace; }
+
+  .minuto-grade {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .minuto-item {
+    text-align: center;
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 6px 2px;
+  }
+  .minuto-faixa { font-size: 9px; color: var(--text-muted); }
+  .minuto-pct { font-family: 'IBM Plex Mono', monospace; font-size: 13px; margin-top: 2px; }
+
+  .h2h-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .h2h-item:last-child { border-bottom: none; }
+  .h2h-data { color: var(--text-muted); font-size: 11px; margin-bottom: 3px; }
+  .h2h-placar { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 200px;
+  }
+  .chat-msg {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+    max-width: 85%;
+  }
+  .chat-msg.assistente { align-self: flex-start; }
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .chat-input-row input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .chat-input-row button {
+    background: var(--accent);
+    border: none;
+    color: #14171A;
+    font-weight: 600;
+    padding: 0 16px;
+    border-radius: 4px;
+  }
+
+  .status-msg { padding: 40px 16px; text-align: center; color: var(--text-muted); }
+
+  .tabela-linha {
+    display: grid;
+    grid-template-columns: 28px 1fr 28px 28px 28px 32px;
+    gap: 4px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    align-items: center;
+  }
+  .tabela-linha:last-child { border-bottom: none; }
+  .tabela-linha.destaque { background: rgba(201,162,39,0.08); border-radius: 4px; }
+  .tabela-header {
+    display: grid;
+    grid-template-columns: 28px 1fr 28px 28px 28px 32px;
+    gap: 4px;
+    padding: 4px 0 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+  .tabela-pos { font-family: 'IBM Plex Mono', monospace; color: var(--text-muted); }
+  .tabela-pts { font-family: 'IBM Plex Mono', monospace; font-weight: 600; text-align: right; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="topo">
+    <a href="home.html" class="voltar">‹</a>
+    <span class="topo-liga" id="topoLiga">carregando...</span>
+  </div>
+  <div class="placar-box" id="placarBox"></div>
+  <div class="abas">
+    <button class="aba-btn ativa" data-aba="resumo">Resumo</button>
+    <button class="aba-btn" data-aba="estatistica">Estatística</button>
+    <button class="aba-btn" data-aba="tabela">Tabela</button>
+    <button class="aba-btn" data-aba="h2h">H2H</button>
+    <button class="aba-btn" data-aba="chat">Chat</button>
+  </div>
+</header>
+
+<div id="status" class="status-msg">Carregando análise...</div>
+
+<div class="aba-conteudo ativa" id="aba-resumo"></div>
+<div class="aba-conteudo" id="aba-estatistica"></div>
+<div class="aba-conteudo" id="aba-tabela"></div>
+<div class="aba-conteudo" id="aba-h2h"></div>
+<div class="aba-conteudo" id="aba-chat">
+  <div class="chat-area" id="chatArea">
+    <div class="chat-msg assistente">Em breve: pergunte à IA sobre este jogo específico. Essa parte ainda não está conectada.</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" placeholder="Pergunte sobre o jogo..." disabled>
+    <button disabled>Enviar</button>
+  </div>
+</div>
+
+<script>
+  const WORKER_URL = "https://cg-la-casa-das-bets.linoariane114.workers.dev";
+
+  const params = new URLSearchParams(window.location.search);
+  const fixtureId = params.get('fixture');
+  const dateParam = params.get('date');
+
+  function formatarDataHora(iso) {
+    const d = new Date(iso);
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  document.querySelectorAll('.aba-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.aba-btn').forEach(b => b.classList.remove('ativa'));
+      document.querySelectorAll('.aba-conteudo').forEach(c => c.classList.remove('ativa'));
+      btn.classList.add('ativa');
+      document.getElementById('aba-' + btn.dataset.aba).classList.add('ativa');
+    });
+  });
+
+  async function carregar() {
+    if (!fixtureId || !dateParam) {
+      document.getElementById('status').textContent = 'Faltou informar o jogo (fixture/date na URL).';
+      return;
+    }
+
+    try {
+      const resp = await fetch(`${WORKER_URL}/analise?fixture=${fixtureId}&date=${dateParam}`);
+      const data = await resp.json();
+
+      if (data.error) {
+        document.getElementById('status').textContent = 'Erro: ' + data.error;
+        return;
+      }
+
+      document.getElementById('status').style.display = 'none';
+      montarCabecalho(data);
+      montarResumo(data);
+      montarEstatistica(data);
+      montarTabela(data);
+      montarH2H(data);
+    } catch (err) {
+      document.getElementById('status').textContent = 'Erro de conexão: ' + err;
+    }
+  }
+
+  function montarCabecalho(data) {
+    const f = data.fixture.fixture;
+    const liga = data.fixture.league;
+    const teams = data.fixture.teams;
+    const goals = data.fixture.goals;
+
+    document.getElementById('topoLiga').textContent = `${liga.name} — ${liga.country}`;
+
+    const status = f.status.short;
+    const aoVivo = !['NS', 'FT', 'PST', 'CANC'].includes(status);
+    const finalizado = status === 'FT';
+
+    let statusTexto;
+    if (aoVivo) statusTexto = `<span class="ao-vivo">AO VIVO — ${f.status.elapsed}'</span>`;
+    else if (finalizado) statusTexto = 'ENCERRADO';
+    else statusTexto = formatarDataHora(f.date);
+
+    const placarTexto = (finalizado || aoVivo) ? `${goals.home ?? '-'} : ${goals.away ?? '-'}` : 'vs';
+
+    document.getElementById('placarBox').innerHTML = `
+      <div class="placar-times">
+        <span>${teams.home.name}</span>
+        <span class="placar-numero mono">${placarTexto}</span>
+        <span>${teams.away.name}</span>
+      </div>
+      <div class="placar-status ${aoVivo ? 'ao-vivo' : ''}">${statusTexto}</div>
+    `;
+  }
+
+  function montarResumo(data) {
+    const container = document.getElementById('aba-resumo');
+    const pred = data.predictions;
+
+    if (!pred) {
+      container.innerHTML = '<div class="bloco">Sem palpite disponível para este jogo.</div>';
+      return;
+    }
+
+    const p = pred.predictions;
+    const home = data.fixture.teams.home.name;
+    const away = data.fixture.teams.away.name;
+
+    container.innerHTML = `
+      <div class="bloco">
+        <div class="bloco-titulo">PALPITE</div>
+        <div class="palpite-texto">${p.advice || 'Sem sugestão disponível.'}</div>
+        <div class="barra-linha">
+          <span class="barra-label">${home}</span>
+          <div class="barra-fundo"><div class="barra-preenchida" style="width:${p.percent.home}"></div></div>
+          <span class="barra-valor mono">${p.percent.home}</span>
+        </div>
+        <div class="barra-linha">
+          <span class="barra-label">Empate</span>
+          <div class="barra-fundo"><div class="barra-preenchida" style="width:${p.percent.draw}"></div></div>
+          <span class="barra-valor mono">${p.percent.draw}</span>
+        </div>
+        <div class="barra-linha">
+          <span class="barra-label">${away}</span>
+          <div class="barra-fundo"><div class="barra-preenchida" style="width:${p.percent.away}"></div></div>
+          <span class="barra-valor mono">${p.percent.away}</span>
+        </div>
+      </div>
+      <div class="bloco">
+        <div class="bloco-titulo">GOLS</div>
+        <div class="stat-linha"><span>Sugestão over/under</span><span class="stat-valor">${p.under_over || '—'}</span></div>
+        <div class="stat-linha"><span>Gols esperados (casa)</span><span class="stat-valor">${p.goals.home}</span></div>
+        <div class="stat-linha"><span>Gols esperados (fora)</span><span class="stat-valor">${p.goals.away}</span></div>
+      </div>
+    `;
+  }
+
+  function montarFaixasMinuto(titulo, minutoObj) {
+    const faixas = ['0-15', '16-30', '31-45', '46-60', '61-75', '76-90'];
+    let itens = '';
+    faixas.forEach(f => {
+      const dado = minutoObj[f];
+      const pct = dado && dado.percentage ? dado.percentage : '—';
+      itens += `<div class="minuto-item"><div class="minuto-faixa">${f}</div><div class="minuto-pct mono">${pct}</div></div>`;
+    });
+    return `<div class="bloco-titulo" style="margin-top:12px">${titulo}</div><div class="minuto-grade">${itens}</div>`;
+  }
+
+  function montarEstatistica(data) {
+    const container = document.getElementById('aba-estatistica');
+    let html = '';
+
+    // Estatistica do jogo em si (so existe se ja comecou/terminou)
+    const stats = data.fixture.statistics;
+    if (stats && stats.length > 0) {
+      html += '<div class="bloco"><div class="bloco-titulo">NESTE JOGO</div>';
+      const [timeA, timeB] = stats;
+      timeA.statistics.forEach((item, i) => {
+        const valorB = timeB.statistics[i] ? timeB.statistics[i].value : '—';
+        html += `<div class="stat-linha"><span class="stat-valor">${item.value ?? '—'}</span><span>${item.type}</span><span class="stat-valor">${valorB ?? '—'}</span></div>`;
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="bloco">Estatística deste jogo ainda não disponível (jogo não começou).</div>';
+    }
+
+    // Padrao da temporada (minutos de gol) - vem do predictions
+    const pred = data.predictions;
+    if (pred && pred.teams) {
+      const home = pred.teams.home;
+      const away = pred.teams.away;
+
+      if (home?.league?.goals?.for?.minute) {
+        html += `<div class="bloco">
+          <div class="bloco-titulo">${data.fixture.teams.home.name.toUpperCase()} — GOLS FEITOS POR FAIXA DE MINUTO (TEMPORADA)</div>
+          <div class="minuto-grade">` +
+          ['0-15','16-30','31-45','46-60','61-75','76-90'].map(f => {
+            const d = home.league.goals.for.minute[f];
+            return `<div class="minuto-item"><div class="minuto-faixa">${f}</div><div class="minuto-pct mono">${d?.percentage ?? '—'}</div></div>`;
+          }).join('') +
+          `</div>
+          <div class="bloco-titulo" style="margin-top:12px">GOLS SOFRIDOS POR FAIXA DE MINUTO</div>
+          <div class="minuto-grade">` +
+          ['0-15','16-30','31-45','46-60','61-75','76-90'].map(f => {
+            const d = home.league.goals.against.minute[f];
+            return `<div class="minuto-item"><div class="minuto-faixa">${f}</div><div class="minuto-pct mono">${d?.percentage ?? '—'}</div></div>`;
+          }).join('') +
+          `</div>
+        </div>`;
+      }
+
+      if (away?.league?.goals?.for?.minute) {
+        html += `<div class="bloco">
+          <div class="bloco-titulo">${data.fixture.teams.away.name.toUpperCase()} — GOLS FEITOS POR FAIXA DE MINUTO (TEMPORADA)</div>
+          <div class="minuto-grade">` +
+          ['0-15','16-30','31-45','46-60','61-75','76-90'].map(f => {
+            const d = away.league.goals.for.minute[f];
+            return `<div class="minuto-item"><div class="minuto-faixa">${f}</div><div class="minuto-pct mono">${d?.percentage ?? '—'}</div></div>`;
+          }).join('') +
+          `</div>
+          <div class="bloco-titulo" style="margin-top:12px">GOLS SOFRIDOS POR FAIXA DE MINUTO</div>
+          <div class="minuto-grade">` +
+          ['0-15','16-30','31-45','46-60','61-75','76-90'].map(f => {
+            const d = away.league.goals.against.minute[f];
+            return `<div class="minuto-item"><div class="minuto-faixa">${f}</div><div class="minuto-pct mono">${d?.percentage ?? '—'}</div></div>`;
+          }).join('') +
+          `</div>
+        </div>`;
+      }
+
+      html += `<div class="bloco">
+        <div class="bloco-titulo">FORMA RECENTE (ÚLTIMOS 5)</div>
+        <div class="stat-linha"><span>${data.fixture.teams.home.name}</span><span class="stat-valor">${home?.last_5?.form ?? '—'}</span></div>
+        <div class="stat-linha"><span>${data.fixture.teams.away.name}</span><span class="stat-valor">${away?.last_5?.form ?? '—'}</span></div>
+      </div>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  function montarTabela(data) {
+    const container = document.getElementById('aba-tabela');
+    const standings = data.standings;
+    const homeId = data.fixture.teams.home.id;
+    const awayId = data.fixture.teams.away.id;
+
+    if (!standings || !standings.length) {
+      container.innerHTML = '<div class="bloco">Tabela não disponível para esta competição.</div>';
+      return;
+    }
+
+    // standings pode ser array de grupos (ex: [[...], [...]]) ou um único grupo
+    const grupos = Array.isArray(standings[0]) ? standings : [standings];
+
+    let html = '';
+    grupos.forEach((grupo, idx) => {
+      const titulo = grupos.length > 1 ? `GRUPO ${idx + 1}` : 'CLASSIFICAÇÃO';
+      html += `<div class="bloco"><div class="bloco-titulo">${titulo}</div>`;
+      html += `<div class="tabela-header">
+        <span>#</span><span>Time</span><span>J</span><span>SG</span><span>Pts</span><span></span>
+      </div>`;
+
+      grupo.forEach(row => {
+        const destaque = (row.team.id === homeId || row.team.id === awayId) ? ' destaque' : '';
+        html += `<div class="tabela-linha${destaque}">
+          <span class="tabela-pos">${row.rank}</span>
+          <span>${row.team.name}</span>
+          <span class="mono">${row.all.played}</span>
+          <span class="mono">${row.goalsDiff > 0 ? '+' : ''}${row.goalsDiff}</span>
+          <span class="tabela-pts">${row.points}</span>
+          <span></span>
+        </div>`;
+      });
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function montarH2H(data) {
+    const container = document.getElementById('aba-h2h');
+    const h2h = data.h2h;
+
+    if (!h2h || h2h.length === 0) {
+      container.innerHTML = '<div class="bloco">Sem confrontos anteriores registrados.</div>';
+      return;
+    }
+
+    let html = '<div class="bloco"><div class="bloco-titulo">ÚLTIMOS CONFRONTOS</div>';
+    h2h.slice(0, 15).forEach(jogo => {
+      const data_ = new Date(jogo.fixture.date).toLocaleDateString('pt-BR');
+      html += `
+        <div class="h2h-item">
+          <div class="h2h-data">${data_} — ${jogo.league.name}</div>
+          <div>${jogo.teams.home.name} <span class="h2h-placar mono">${jogo.goals.home} : ${jogo.goals.away}</span> ${jogo.teams.away.name}</div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  carregar();
+</script>
+
+</body>
+</html>
