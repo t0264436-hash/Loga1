@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1f2e">
+<title>Família — Mensagens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1219;
+    --surface: #1a1f2e;
+    --surface-2: #242b3d;
+    --line: #2e3648;
+    --text: #f0efe9;
+    --text-muted: #8b93a7;
+    --accent: #5b8def;
+    --accent-soft: rgba(91,141,239,0.15);
+    --mine: #2d4a7a;
+    --theirs: #242b3d;
+    --success: #4caf7a;
+    --danger: #e05c5c;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    max-width: 640px;
+    margin: 0 auto;
+    height: 100dvh;
+  }
+
+  /* ---- Tela de nome ---- */
+  #telaNome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 24px 20px;
+    gap: 16px;
+  }
+  #telaNome.escondida { display: none; }
+  .logo {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .logo-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #5b8def, #7c5cbf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 14px;
+  }
+  .logo h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .logo p {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .nome-opcoes {
+    display: grid;
+    gap: 10px;
+  }
+  .nome-btn {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 16px;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .nome-btn:active { background: var(--surface-2); }
+  .nome-btn.destaque {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .nome-custom {
+    display: flex;
+    gap: 8px;
+  }
+  .nome-custom input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 16px;
+  }
+  .nome-custom button {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    padding: 0 18px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  /* ---- Chat ---- */
+  #telaChat {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+  }
+  #telaChat.ativa { display: flex; }
+
+  header {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #5b8def, #7c5cbf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .header-info { flex: 1; min-width: 0; }
+  .header-info h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .header-info span {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .btn-trocar {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  #mensagens {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 14px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dia-sep {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 8px 0;
+  }
+  .msg {
+    max-width: 85%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .msg.eu { align-self: flex-end; }
+  .msg.outro { align-self: flex-start; }
+  .msg-autor {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 0 4px;
+  }
+  .msg.eu .msg-autor { text-align: right; }
+  .msg-bolha {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+  .msg.eu .msg-bolha {
+    background: var(--mine);
+    border-bottom-right-radius: 4px;
+  }
+  .msg.outro .msg-bolha {
+    background: var(--theirs);
+    border-bottom-left-radius: 4px;
+  }
+  .msg-bolha img, .msg-bolha video {
+    display: block;
+    max-width: 100%;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .msg-bolha video {
+    max-height: 280px;
+    background: #000;
+  }
+  .msg-hora {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 0 4px;
+  }
+  .msg.eu .msg-hora { text-align: right; }
+  .vazio {
+    margin: auto;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 40px 20px;
+  }
+
+  /* ---- Input ---- */
+  .composer {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    padding: 10px 12px calc(10px + var(--safe-bottom));
+  }
+  .composer-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .btn-anexo {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .composer textarea {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 11px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.4;
+  }
+  .btn-enviar {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .btn-enviar:disabled {
+    opacity: 0.4;
+  }
+  .preview {
+    display: none;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .preview.ativa { display: block; }
+  .preview img, .preview video {
+    max-height: 120px;
+    border-radius: 10px;
+    max-width: 100%;
+  }
+  .preview-x {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .status-bar {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 4px 0 0;
+    min-height: 16px;
+  }
+  .status-bar.erro { color: var(--danger); }
+  .status-bar.ok { color: var(--success); }
+
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Tela de escolher nome -->
+<div id="telaNome">
+  <div class="logo">
+    <div class="logo-icon">💬</div>
+    <h1>Mensagens da Família</h1>
+    <p>Espaço seguro para conversar por texto, foto e vídeo enquanto a mamãe está viajando.</p>
+  </div>
+  <div class="nome-opcoes">
+    <button class="nome-btn destaque" data-nome="Filho">Sou o Filho</button>
+    <button class="nome-btn" data-nome="Mãe">Sou a Mãe</button>
+    <button class="nome-btn" data-nome="Irmã">Sou a Irmã</button>
+  </div>
+  <div class="nome-custom">
+    <input type="text" id="nomeLivre" placeholder="Ou digite seu nome..." maxlength="30">
+    <button id="btnNomeLivre">Entrar</button>
+  </div>
+</div>
+
+<!-- Tela do chat -->
+<div id="telaChat">
+  <header>
+    <div class="avatar">🏠</div>
+    <div class="header-info">
+      <h2>Família</h2>
+      <span id="labelQuem">Você: —</span>
+    </div>
+    <button class="btn-trocar" id="btnTrocar">Trocar</button>
+  </header>
+
+  <div id="mensagens">
+    <div class="vazio" id="vazio">Nenhuma mensagem ainda.<br>Envie a primeira!</div>
+  </div>
+
+  <div class="composer">
+    <div class="preview" id="preview">
+      <button class="preview-x" id="btnLimparMedia">✕</button>
+      <div id="previewConteudo"></div>
+    </div>
+    <div class="composer-row">
+      <button class="btn-anexo" id="btnAnexo" title="Foto ou vídeo">📎</button>
+      <textarea id="texto" rows="1" placeholder="Escreva uma mensagem..."></textarea>
+      <button class="btn-enviar" id="btnEnviar" disabled>➤</button>
+    </div>
+    <div class="status-bar" id="status"></div>
+  </div>
+</div>
+
+<input type="file" id="inputFile" accept="image/*,video/*">
+
+<script>
+  const WORKER_URL = "https://cg-la-casa-das-bets.linoariane114.workers.dev";
+  const POLL_MS = 4000;
+
+  let meuNome = localStorage.getItem("familia_nome") || "";
+  let mediaPendente = null; // { type, dataUrl }
+  let ultimoCount = 0;
+  let pollTimer = null;
+
+  const telaNome = document.getElementById("telaNome");
+  const telaChat = document.getElementById("telaChat");
+  const mensagensEl = document.getElementById("mensagens");
+  const vazioEl = document.getElementById("vazio");
+  const textoEl = document.getElementById("texto");
+  const btnEnviar = document.getElementById("btnEnviar");
+  const statusEl = document.getElementById("status");
+  const previewEl = document.getElementById("preview");
+  const previewConteudo = document.getElementById("previewConteudo");
+  const inputFile = document.getElementById("inputFile");
+
+  // ---- Entrar ----
+  document.querySelectorAll(".nome-btn").forEach(btn => {
+    btn.onclick = () => entrar(btn.dataset.nome);
+  });
+  document.getElementById("btnNomeLivre").onclick = () => {
+    const n = document.getElementById("nomeLivre").value.trim();
+    if (n) entrar(n);
+  };
+  document.getElementById("nomeLivre").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("btnNomeLivre").click();
+  });
+
+  function entrar(nome) {
+    meuNome = nome;
+    localStorage.setItem("familia_nome", nome);
+    telaNome.classList.add("escondida");
+    telaChat.classList.add("ativa");
+    document.getElementById("labelQuem").textContent = "Você: " + nome;
+    carregarMensagens(true);
+    pollTimer = setInterval(() => carregarMensagens(false), POLL_MS);
+  }
+
+  document.getElementById("btnTrocar").onclick = () => {
+    localStorage.removeItem("familia_nome");
+    meuNome = "";
+    clearInterval(pollTimer);
+    telaChat.classList.remove("ativa");
+    telaNome.classList.remove("escondida");
+  };
+
+  if (meuNome) entrar(meuNome);
+
+  // ---- Textarea auto-resize ----
+  textoEl.addEventListener("input", () => {
+    textoEl.style.height = "auto";
+    textoEl.style.height = Math.min(textoEl.scrollHeight, 120) + "px";
+    atualizarBotao();
+  });
+
+  function atualizarBotao() {
+    const temTexto = textoEl.value.trim().length > 0;
+    const temMedia = !!mediaPendente;
+    btnEnviar.disabled = !(temTexto || temMedia);
+  }
+
+  // ---- Anexo ----
+  document.getElementById("btnAnexo").onclick = () => inputFile.click();
+  inputFile.onchange = async () => {
+    const file = inputFile.files[0];
+    if (!file) return;
+    statusEl.textContent = "Preparando arquivo...";
+    statusEl.className = "status-bar";
+
+    try {
+      if (file.type.startsWith("image/")) {
+        const dataUrl = await comprimirImagem(file, 1280, 0.72);
+        mediaPendente = { type: "image", dataUrl };
+        previewConteudo.innerHTML = '<img src="' + dataUrl + '" alt="preview">';
+      } else if (file.type.startsWith("video/")) {
+        if (file.size > 4 * 1024 * 1024) {
+          statusEl.textContent = "Vídeo grande demais (máx. ~4 MB). Grave mais curto.";
+          statusEl.className = "status-bar erro";
+          inputFile.value = "";
+          return;
+        }
+        const dataUrl = await lerArquivo(file);
+        if (dataUrl.length > 900000) {
+          statusEl.textContent = "Vídeo ainda grande demais após leitura. Tente um mais curto.";
+          statusEl.className = "status-bar erro";
+          inputFile.value = "";
+          return;
+        }
+        mediaPendente = { type: "video", dataUrl };
+        previewConteudo.innerHTML = '<video src="' + dataUrl + '" controls></video>';
+      } else {
+        statusEl.textContent = "Só foto ou vídeo.";
+        statusEl.className = "status-bar erro";
+        inputFile.value = "";
+        return;
+      }
+      previewEl.classList.add("ativa");
+      statusEl.textContent = "";
+      atualizarBotao();
+    } catch (e) {
+      statusEl.textContent = "Erro ao ler arquivo: " + e.message;
+      statusEl.className = "status-bar erro";
+    }
+    inputFile.value = "";
+  };
+
+  document.getElementById("btnLimparMedia").onclick = () => {
+    mediaPendente = null;
+    previewEl.classList.remove("ativa");
+    previewConteudo.innerHTML = "";
+    atualizarBotao();
+  };
+
+  function lerArquivo(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function comprimirImagem(file, maxLado, qualidade) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxLado || h > maxLado) {
+          if (w > h) { h = Math.round(h * maxLado / w); w = maxLado; }
+          else { w = Math.round(w * maxLado / h); h = maxLado; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", qualidade));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  // ---- Enviar ----
+  btnEnviar.onclick = enviar;
+  textoEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!btnEnviar.disabled) enviar();
+    }
+  });
+
+  async function enviar() {
+    const text = textoEl.value.trim();
+    if (!text && !mediaPendente) return;
+
+    btnEnviar.disabled = true;
+    statusEl.textContent = "Enviando...";
+    statusEl.className = "status-bar";
+
+    const payload = {
+      from: meuNome,
+      type: mediaPendente ? mediaPendente.type : "text",
+      text: text || null,
+      media: mediaPendente ? mediaPendente.dataUrl : null,
+    };
+
+    try {
+      const resp = await fetch(WORKER_URL + "/familia/mensagens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.error) {
+        throw new Error(data.error || "Falha ao enviar");
+      }
+      textoEl.value = "";
+      textoEl.style.height = "auto";
+      mediaPendente = null;
+      previewEl.classList.remove("ativa");
+      previewConteudo.innerHTML = "";
+      statusEl.textContent = "Enviado ✓";
+      statusEl.className = "status-bar ok";
+      setTimeout(() => { if (statusEl.className.includes("ok")) statusEl.textContent = ""; }, 1500);
+      await carregarMensagens(true);
+    } catch (e) {
+      statusEl.textContent = "Erro: " + e.message;
+      statusEl.className = "status-bar erro";
+      atualizarBotao();
+    }
+  }
+
+  // ---- Carregar mensagens ----
+  async function carregarMensagens(scrollFinal) {
+    try {
+      const resp = await fetch(WORKER_URL + "/familia/mensagens");
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      const msgs = data.messages || [];
+      if (msgs.length === ultimoCount && !scrollFinal) return;
+      ultimoCount = msgs.length;
+      renderMensagens(msgs);
+      if (scrollFinal || estaNoFundo()) {
+        mensagensEl.scrollTop = mensagensEl.scrollHeight;
+      }
+    } catch (e) {
+      statusEl.textContent = "Erro ao carregar: " + e.message;
+      statusEl.className = "status-bar erro";
+    }
+  }
+
+  function estaNoFundo() {
+    return mensagensEl.scrollHeight - mensagensEl.scrollTop - mensagensEl.clientHeight < 80;
+  }
+
+  function renderMensagens(msgs) {
+    if (!msgs.length) {
+      mensagensEl.innerHTML = '<div class="vazio">Nenhuma mensagem ainda.<br>Envie a primeira!</div>';
+      return;
+    }
+
+    let html = "";
+    let ultimoDia = "";
+    msgs.forEach(m => {
+      const d = new Date(m.timestamp || 0);
+      const dia = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+      if (dia !== ultimoDia) {
+        html += '<div class="dia-sep">' + dia + '</div>';
+        ultimoDia = dia;
+      }
+      const souEu = m.from === meuNome;
+      const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      let corpo = "";
+      if (m.type === "image" && m.media) {
+        corpo += '<img src="' + m.media + '" alt="foto" loading="lazy">';
+      }
+      if (m.type === "video" && m.media) {
+        corpo += '<video src="' + m.media + '" controls playsinline></video>';
+      }
+      if (m.text) {
+        corpo += escapeHtml(m.text);
+      }
+      html += '<div class="msg ' + (souEu ? "eu" : "outro") + '">' +
+        '<div class="msg-autor">' + escapeHtml(m.from || "?") + '</div>' +
+        '<div class="msg-bolha">' + corpo + '</div>' +
+        '<div class="msg-hora">' + hora + '</div>' +
+      '</div>';
+    });
+    mensagensEl.innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/\\n/g, "<br>");
+  }
+</script>
+</body>
+</html>
